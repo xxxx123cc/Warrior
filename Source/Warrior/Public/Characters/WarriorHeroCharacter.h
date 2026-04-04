@@ -6,6 +6,7 @@
 #include "Characters/WarriorBaseCharacter.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
+#include "GameplayTagContainer.h"
 #include "WarriorHeroCharacter.generated.h"
 class USpringArmComponent;
 class UCameraComponent;
@@ -51,6 +52,9 @@ private:
 	
 	void Input_Look(const FInputActionValue& InputActionValue);
 	
+	void Input_AbilityInputPressed(FGameplayTag Input_Tag);
+	
+	void Input_AbilityInputReleased(FGameplayTag Input_Tag);
     #pragma endregion
 	
 public:

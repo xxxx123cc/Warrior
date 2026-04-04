@@ -88,6 +88,7 @@ void AWarriorHeroCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 	
 	WarriorInputComponent->BindNativeInputAction(InputConfigDataAsset,WarriorGameplayTags::InputTag_Look,ETriggerEvent::Triggered,this,&ThisClass::Input_Look);
 	
+	WarriorInputComponent->BindAbilityInputAction(InputConfigDataAsset,this,&ThisClass::Input_AbilityInputPressed,&ThisClass::Input_AbilityInputReleased);
 }
 
 void AWarriorHeroCharacter::Input_Move(const FInputActionValue& InputActionValue)
@@ -131,4 +132,15 @@ void AWarriorHeroCharacter::Input_Look(const FInputActionValue& InputActionValue
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
 	// 处理视角输入的回调。InputActionValue 中会包含轴向值或按键状态
+}
+
+void AWarriorHeroCharacter::Input_AbilityInputPressed(FGameplayTag Input_Tag)
+{
+	WarriorAbilitySystemComponent->OnAbilityInputPressed(Input_Tag);
+	
+}
+
+void AWarriorHeroCharacter::Input_AbilityInputReleased(FGameplayTag Input_Tag)
+{
+	WarriorAbilitySystemComponent->OnAbilityInputReleased(Input_Tag);
 }
