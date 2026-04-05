@@ -1,21 +1,20 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
+
 #include "AnimInstances/WarriorCharacterAnimInstance.h"
 #include "Characters/WarriorBaseCharacter.h"
-#include "DynamicMesh/DynamicMesh3.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "WarriorDebugHelper.h"
+
 void UWarriorCharacterAnimInstance::NativeInitializeAnimation()
 {
-	Super::NativeInitializeAnimation();
-	OwningCharacter= Cast<AWarriorBaseCharacter>(TryGetPawnOwner());
+	OwningCharacter = Cast<AWarriorBaseCharacter>(TryGetPawnOwner());
+	 
 	if (OwningCharacter)
 	{
-		OwningMovementComponent= OwningCharacter->GetCharacterMovement();
+		OwningMovementComponent = OwningCharacter->GetCharacterMovement();
 	}
 }
-
 void UWarriorCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);

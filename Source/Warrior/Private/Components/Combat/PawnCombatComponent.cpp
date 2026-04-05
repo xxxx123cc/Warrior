@@ -3,6 +3,7 @@
 
 #include "Components/Combat/PawnCombatComponent.h"
 #include "Items/Weapons/WarriorWeaponBase.h"
+#include "WarriorDebugHelper.h"
 void UPawnCombatComponent::RegisterSpawnedWeapon(FGameplayTag InWeaponTagToRegister,
 	AWarriorWeaponBase* InWeaponToRegister, bool bRegisterEquippedWeapon)
 {//检查武器标签不存在于Map里，检查要生成的武器是否有效-4.1
@@ -15,6 +16,7 @@ void UPawnCombatComponent::RegisterSpawnedWeapon(FGameplayTag InWeaponTagToRegis
 	if (bRegisterEquippedWeapon)
 	{
 		CurrentEquippedWeaponTag= InWeaponTagToRegister;
+		
 	}
 	
 }
