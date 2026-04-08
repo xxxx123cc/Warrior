@@ -45,3 +45,8 @@ UWarriorAbilitySystemComponent* UWarriorGameplayAbility::GetWarriorASCFromActorI
 	return Cast<UWarriorAbilitySystemComponent>(CurrentActorInfo->AbilitySystemComponent);
 	
 }
+
+void UWarriorGameplayAbility::OnComboInputPressed()
+{
+	bHasPendingComboInput = true;
+}

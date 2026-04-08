@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemComponent.h"
+#include "WarriorStructTypes.h"
 #include "WarriorAbilitySystemComponent.generated.h"
 
 /**
@@ -16,4 +17,11 @@ class WARRIOR_API UWarriorAbilitySystemComponent : public UAbilitySystemComponen
 public:
 	void OnAbilityInputPressed(const FGameplayTag& InputTag);
 	void OnAbilityInputReleased(const FGameplayTag& InputTag);
+	
+	UFUNCTION(BlueprintCallable,Category="Warroir|Ability",meta = (ApplyLevel="1"))
+	void GrantHeroWeaponAbilities(const TArray<FWarriorHeroAbilitySets>& InDefaultWeaponAbilities,int32 ApplyLevel,TArray<FGameplayAbilitySpecHandle>& OutGrantedAbilitySpecHandles);
+
+	UFUNCTION(BlueprintCallable,Category="Warroir|Ability")
+	void RemoveGrantedHeroAbilities(UPARAM(ref) TArray<FGameplayAbilitySpecHandle>& InSpecHandlesToRemove);
+
 };

@@ -37,5 +37,10 @@ protected:
 	
 	UFUNCTION(BlueprintPure,Category="Ability|Combat")
 	UWarriorAbilitySystemComponent* GetWarriorASCFromActorInfo() const;
+public:
+	UPROPERTY(BlueprintReadWrite, Category = "Warrior|Ability")
+	bool bHasPendingComboInput = false;
+
+	void OnComboInputPressed();
 
 };

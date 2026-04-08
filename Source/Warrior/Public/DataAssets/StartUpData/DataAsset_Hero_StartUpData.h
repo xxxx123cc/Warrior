@@ -4,9 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "DataAssets/StartUpData/DataAsset_StartUpDataBase.h"
-#include "GameplayTagContainer.h"
 #include "DataAsset_Hero_StartUpData.generated.h"
 
+struct FWarriorHeroAbilitySets;
 /**
  * @struct FWarriorHeroAbilitySets
  * @brief 定义英雄启动时配置的技能集合
@@ -14,25 +14,6 @@
  * 该结构体用于配置英雄初始技能的输入标签和技能类，
  * 通常用于DataAsset中定义英雄的起始技能配置
  */
-USTRUCT(Blueprintable)
-struct FWarriorHeroAbilitySets
-{
-	GENERATED_BODY()
-	
-	/** 输入标签，用于标识技能绑定的输入操作（限制在InputTag分类下） */
-	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,meta = (Categories = "InputTag"))
-	FGameplayTag InputTag;
-	
-	/** 要授予的能力类，指定授予英雄的具体技能类型 */
-	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly)
-	TSubclassOf<UWarriorGameplayAbility> AbilityToGrant;
-	
-	/**
-	 * 检查配置是否有效
-	 * @return 如果InputTag和AbilityToGrant都有效则返回true
-	 */
-	bool IsValid() const;
-};
 
 /**
  * @class UDataAsset_Hero_StartUpData
