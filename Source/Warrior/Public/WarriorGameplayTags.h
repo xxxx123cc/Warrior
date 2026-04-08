@@ -31,5 +31,7 @@ namespace WarriorGameplayTags
 	
 	WARRIOR_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Status_JumpToFinisher);
 	
+	/**敌人标签**/
+	WARRIOR_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Enemy_Weapon);
 
 }
