@@ -5,6 +5,9 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
+#include "AbilitySystemComponent.h"
+#include "Interfaces/PawnCombatInterface.h"
+#include "Warrior/Public/Components/Combat/PawnCombatComponent.h"
 #include "WarriorBaseCharacter.generated.h"
 
 
@@ -13,7 +16,7 @@ class UWarriorAttributeSet;
 class UDataAsset_StartUpDataBase;
 
 UCLASS()
-class WARRIOR_API AWarriorBaseCharacter : public ACharacter,public IAbilitySystemInterface
+class WARRIOR_API AWarriorBaseCharacter : public ACharacter,public IAbilitySystemInterface,public IPawnCombatInterface
 {
 	GENERATED_BODY()
 
@@ -23,6 +26,9 @@ public:
 	//~ Begin IAbilitySystemInterface Interface
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	//~ End IAbilitySystemInterface Interface
+	//获取combat组件函数接口
+	virtual UPawnCombatComponent* GetPawnCombatComponent() const  override;
+	
 protected:
 	//~ Begin APawn Interface
 	// 说明：PossessedBy 是 APawn 的生命周期钩子（Engine 在 possession 时调用），通常不应该

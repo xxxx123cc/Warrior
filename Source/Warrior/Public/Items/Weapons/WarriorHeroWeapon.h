@@ -4,9 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Items/Weapons/WarriorWeaponBase.h"
-#include "WarriorStructTypes.h"
+#include "WarriorTypes/WarriorStructTypes.h"
 #include "GameplayAbilitySpecHandle.h"
 #include "WarriorHeroWeapon.generated.h"
+
 
 /**
  * 
@@ -23,6 +24,7 @@ public:
 	void AssignGrantedAbilitySpecHandles(const TArray<FGameplayAbilitySpecHandle>& InSpecHandles);
 	UFUNCTION(BlueprintPure,Category="Weapon")
 	TArray<FGameplayAbilitySpecHandle> GetGrantedAbilitySpecHandles() const;
+	
 	
 private:
 	TArray<FGameplayAbilitySpecHandle> GrantedAbilitySpecHandles;

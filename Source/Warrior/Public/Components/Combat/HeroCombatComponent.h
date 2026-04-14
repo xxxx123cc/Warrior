@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/Combat/PawnCombatComponent.h"
+#include "ScalableFloat.h"
 #include "HeroCombatComponent.generated.h"
 
 class AWarriorHeroWeapon;
@@ -17,5 +18,13 @@ class WARRIOR_API UHeroCombatComponent : public UPawnCombatComponent
 public:
 	UFUNCTION(BlueprintCallable,Category="Warrior|Combat")
 	AWarriorHeroWeapon* GetHeroCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const;
+	UFUNCTION(BlueprintCallable,Category="Warrior|Combat")
+	AWarriorHeroWeapon* GetHeroCurrentEquippedWeapon() const;
+	UFUNCTION(BlueprintCallable,Category="Warrior|Combat")
+	float GetHeroCurrentEquipWeaponDamageAtLevel(float InLevel)const ;
+	//创建委托
+	virtual  void OnHitTargetActor(AActor* HitActor) override;
+	virtual void OnWeaponEndOverlapTarget (AActor* EndOverlapActor)override ;
+	
 	
 };

@@ -27,7 +27,9 @@ public:
 	//获取玩家战斗组件
 	UFUNCTION(BlueprintPure,Category="Warrior|Ability")
 	UHeroCombatComponent* GetHeroCombatComponentFromActorInfo();
-	
+	//
+	UFUNCTION(BlueprintPure,Category="Warrior|Ability")
+	FGameplayEffectSpecHandle HeroDamageEffectHandle(TSubclassOf<UGameplayEffect>EffectClass,float InWeaponBaseDamage,FGameplayTag InCurrentAttackTypeTag,int32 InUsedComboCount);
 	
 private:
 	//弱指针引用缓存角色，指向 UObject/AActor 的弱指针，不会阻止对象被 GC/销毁；对象没了它会自动变成无效（不会变成悬空野指针）。-4.1

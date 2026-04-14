@@ -4,19 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "WarriorTypes/WarriorEnumTypes.h"
 #include "WarriorFunctionLibrary.generated.h"
 
+struct FGameplayTag;
 // 前向声明，避免循环依赖
 class UWarriorAbilitySystemComponent;
+class UPawnCombatComponent;
 
-
-
-UENUM()
-enum class EWarriorConfirmType:uint8
-{
-	Yes,  // 确认
-	No    // 否定
-};
 
 
 UCLASS()
@@ -70,4 +65,8 @@ public:
 	UFUNCTION(BlueprintCallable,Category="Warrior|FunctionLibrary",meta = (DisplayName="DoesActorHaveTag",ExpandEnumAsExecs = "OutConfirm"))
 	static void BP_DoesActorHaveTag(AActor* InActor,FGameplayTag TagToCheck,EWarriorConfirmType& OutConfirm);
 
+	static UPawnCombatComponent* NativeGetPawnCombatComponentFromActor(AActor* InActor);
+	
+	UFUNCTION(BlueprintCallable,Category="Warrior|FunctionLibrary",meta=(DisplayName="获取战斗组件",ExpandEnumAsExecs = "OutValid"))
+	static  UPawnCombatComponent* BP_GetPawnCombatComponentFromActor(AActor* InActor,EWarriorValidType& OutValid);
 };

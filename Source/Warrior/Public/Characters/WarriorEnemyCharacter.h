@@ -17,6 +17,7 @@ class WARRIOR_API AWarriorEnemyCharacter : public AWarriorBaseCharacter
 public:
 	AWarriorEnemyCharacter();
 	
+	virtual UPawnCombatComponent* GetPawnCombatComponent() const override ;
 protected:
 	//初始化角色(采用异步加载）
 	virtual void PossessedBy(AController* NewController) override;
@@ -26,6 +27,7 @@ protected:
 private:
 	void InitEnemyStartUpData();
 	
+	 
 	
 public:
 	FORCEINLINE UEnemyCombatComponent* GetEnemyCombatComponent() const { return EnemyCombatComponent; }

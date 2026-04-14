@@ -17,7 +17,38 @@ AWarriorWeaponBase::AWarriorWeaponBase()
 	WeaponCollisionBox->SetupAttachment(GetRootComponent());
 	WeaponCollisionBox->SetBoxExtent(FVector(20.f));
 	WeaponCollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	WeaponCollisionBox->OnComponentBeginOverlap.AddDynamic(this,&AWarriorWeaponBase::OnWeaponOverlapBegin);
+	WeaponCollisionBox->OnComponentEndOverlap.AddDynamic(this,&AWarriorWeaponBase::OnWeaponOverlapEnd);
 	
 }
+
+void AWarriorWeaponBase::OnWeaponOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	APawn*WeaponOwningPawn = GetInstigator<APawn>();
+	if (APawn* HitAPawn = Cast<APawn>(OtherActor))
+	{
+		if (WeaponOwningPawn!=HitAPawn)
+		{
+			OnWeaponHitTarget.ExecuteIfBound(OtherActor);
+		}
+		//为敌方实现检查
+	}
+}
+
+void AWarriorWeaponBase::OnWeaponOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	APawn*WeaponOwningPawn = GetInstigator<APawn>();
+	if (APawn* HitAPawn = Cast<APawn>(OtherActor))
+	{
+		if (WeaponOwningPawn!=HitAPawn)
+		{
+			OnWeaponEndOverlapTarget.ExecuteIfBound(OtherActor);
+		}
+		//为敌方实现检查
+	}
+}
+
 
 

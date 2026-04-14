@@ -4,7 +4,7 @@
 #include "DataAssets/StartUpData/DataAsset_Hero_StartUpData.h"
 #include "AbilitySystem/Abilities/WarriorHeroGameplayAbility.h"
 #include "AbilitySystem/WarriorAbilitySystemComponent.h"
-#include "WarriorStructTypes.h"
+#include "WarriorTypes/WarriorStructTypes.h"
 
 void UDataAsset_Hero_StartUpData::GivenToAbilitySystemComponent(UWarriorAbilitySystemComponent* InAscToGive,
 	int32 ApplyLevel)

@@ -4,8 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "ScalableFloat.h"
 #include "WarriorStructTypes.generated.h"
-
 
 class UWarriorHeroLinkedAnimLayer;
 class UWarriorHeroGameplayAbility;
@@ -39,13 +39,16 @@ USTRUCT(BlueprintType)
 struct FWarriorHeroWeaponData
 {
 	GENERATED_BODY()
-	
+	//动画层
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category="WeaponData")
 	TSubclassOf<UWarriorHeroLinkedAnimLayer> WeaponAnimLayerToLink;
-	
+	//武器攻击上下文映射
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category="WeaponData")
 	UInputMappingContext* WeaponInputMappingContext;
-	
+	//武器的能力
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,meta=(TitleProperty = "InpuTag"))
 	TArray<FWarriorHeroAbilitySets> DefaultWeaponAbilities;
+	//基础伤害，后续可以根据武器类型、英雄属性等进行调整
+	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,meta=(TitleProperty = "InpuTag"))
+	FScalableFloat WeaponBaseDamage;
 };

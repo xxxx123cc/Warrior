@@ -6,6 +6,14 @@
 #include "GameplayTagContainer.h"
 #include "Components/PawnExtensionComponentBase.h"
 #include "PawnCombatComponent.generated.h"
+UENUM  (BlueprintType)
+enum class EToggleDamageType :uint8
+{
+	CurrentEquippedWeapon,
+	RightHand,
+	LeftHand
+	
+};
 
 class AWarriorWeaponBase;
 /**
@@ -21,7 +29,7 @@ public:
 	//在Map里注册已装备武器标签，是否为已装备武器初始时为false-4.1
 	UFUNCTION(BlueprintCallable,Category="Warrior|Combat")
 	void RegisterSpawnedWeapon(FGameplayTag InWeaponTagToRegister,AWarriorWeaponBase* InWeaponToRegister,bool bRegisterEquippedWeapon = false);
-	//通过标签获取已装备武器-4.1
+	//通过标签获取已装备武器-4.1 
 	UFUNCTION(BlueprintCallable,Category="Warrior|Combat")
 	AWarriorWeaponBase* GetCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const;
 	//定义当前武器标签-4.1
@@ -29,7 +37,16 @@ public:
 	FGameplayTag CurrentEquippedWeaponTag;
 	//通过武器标签获取当前武器-4.1
 	UFUNCTION(BlueprintCallable,Category="Warrior|Combat")
-	AWarriorWeaponBase* GetCurrentEquippedWeaponByTag() const;
-	
+	AWarriorWeaponBase* GetCurrentEquippedWeapon() const;
+	//控制武器碰撞 
+	UFUNCTION(BlueprintCallable,Category="Weapon")
+	void ToggleWeaponCollision(bool bEnableCollision,EToggleDamageType ToggleDamageType=EToggleDamageType::CurrentEquippedWeapon);
 
+	virtual  void OnHitTargetActor(AActor* HitActor) ;
+	
+	virtual void OnWeaponEndOverlapTarget (AActor* EndOverlapActor) ;
+protected:
+	TArray<AActor*> OverlapActors;
+	
+	
 };

@@ -5,7 +5,8 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Warrior/Public/AbilitySystem/WarriorAbilitySystemComponent.h"
 #include "BlueprintGameplayTagLibrary.h"
-
+#include "Warrior/Public/Characters/WarriorBaseCharacter.h"
+#include"Warrior/Public/Interfaces/PawnCombatInterface.h"
 /**
  * @brief 从Actor获取WarriorAbilitySystemComponent
  * @param InActor 目标Actor
@@ -90,5 +91,23 @@ void UWarriorFunctionLibrary::BP_DoesActorHaveTag(AActor* InActor, FGameplayTag 
 	// 根据Tag检查结果设置输出枚举值
 	// 使用三元运算符：如果拥有Tag则输出Yes，否则输出No
 	NativeDoesActorHaveTag(InActor, TagToCheck) ? OutConfirm = EWarriorConfirmType::Yes : OutConfirm = EWarriorConfirmType::No;
+}
+
+UPawnCombatComponent* UWarriorFunctionLibrary::NativeGetPawnCombatComponentFromActor(AActor* InActor)
+{
+	check(InActor)
+	if (IPawnCombatInterface*PawnCombatInterface= Cast<IPawnCombatInterface>(InActor))
+	{
+	return PawnCombatInterface->GetPawnCombatComponent();	
+	}
+	return nullptr;
+}
+
+UPawnCombatComponent* UWarriorFunctionLibrary::BP_GetPawnCombatComponentFromActor(AActor* InActor,
+	EWarriorValidType& OutValid)
+{
+	UPawnCombatComponent*CombatComponent= NativeGetPawnCombatComponentFromActor(InActor) ;
+     OutValid= CombatComponent?EWarriorValidType::Valid:EWarriorValidType::InValid;
+	 return CombatComponent;
 }
 

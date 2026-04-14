@@ -12,7 +12,7 @@
 #include "AbilitySystem/WarriorAbilitySystemComponent.h"
 
 #include "AbilitySystem/WarriorAttributeSet.h"
-
+#include "Interfaces/PawnCombatInterface.h"
 // Sets default values
 AWarriorBaseCharacter::AWarriorBaseCharacter()
 {
@@ -33,6 +33,14 @@ UAbilitySystemComponent* AWarriorBaseCharacter::GetAbilitySystemComponent() cons
     return GetWarriorAbilitySystemComponent();
     
 }
+
+UPawnCombatComponent* AWarriorBaseCharacter::GetPawnCombatComponent() const
+{
+	// Base 角色不一定有战斗组件；子类（Hero/Enemy）会返回各自的 CombatComponent
+	return nullptr;
+}
+
+
 
 void AWarriorBaseCharacter::PossessedBy(AController* NewController)
 {

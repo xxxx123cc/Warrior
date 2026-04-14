@@ -7,6 +7,7 @@
 #include "DataAsset_Hero_StartUpData.generated.h"
 
 struct FWarriorHeroAbilitySets;
+class UWarriorAttributeSet;
 /**
  * @struct FWarriorHeroAbilitySets
  * @brief 定义英雄启动时配置的技能集合
@@ -39,4 +40,7 @@ private:
 	/** 英雄启动技能集合数组，配置英雄初始时获得的技能 */
 	UPROPERTY(EditDefaultsOnly,Category="StartUpData",meta=(TitleProperty = "InputTag"))
 	TArray<FWarriorHeroAbilitySets>HeroStartUpAbilitySets;
+	
+	
+	
 };

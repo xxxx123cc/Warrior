@@ -9,6 +9,7 @@
 
 class UWarriorGameplayAbility;
 class UWarriorAbilitySystemComponent;
+class UGameplayEffect;
 /**
  * 启动数据资产基类
  * 
@@ -50,5 +51,14 @@ protected:
 	 * 授予能力到指定的能力系统组件 
 	 * 内部辅助函数，用于遍历能力列表并逐个授予目标能力系统组件。
 	 */
+	UPROPERTY(EditDefaultsOnly,Category="StartUpData")
+	TArray<TSubclassOf<UGameplayEffect>> StartUpGamePlayEffects;
+	
+	
+	
+	
 	void GrantAbilities(TArray<TSubclassOf<UWarriorGameplayAbility>>& InAbilitiesToGive,UWarriorAbilitySystemComponent* InAscToGive  ,int32 ApplyLevel = 1);
+	
+
+
 };
