@@ -17,6 +17,7 @@
 #include "GameFramework/PlayerController.h"
 #include "DataAssets/StartUpData/DataAsset_Hero_StartUpData.h"
 #include "Components/Combat/HeroCombatComponent.h"
+#include "Components/UI/HeroUIComponent.h"
 AWarriorHeroCharacter::AWarriorHeroCharacter()
 {
 	GetCapsuleComponent()->InitCapsuleSize(42.f,96.f);
@@ -42,11 +43,24 @@ AWarriorHeroCharacter::AWarriorHeroCharacter()
 	
 	HeroCombatComponent = CreateDefaultSubobject<UHeroCombatComponent>(TEXT("HeroCombatComponent"));
 	
+	HeroUIComponent = CreateDefaultSubobject<UHeroUIComponent>(TEXT("HeroUIComponent"));
 }
 
 UPawnCombatComponent* AWarriorHeroCharacter::GetPawnCombatComponent() const
 {
 	return HeroCombatComponent;
+}
+
+UPawnUIComponent* AWarriorHeroCharacter::GetPawnUIComponent() const
+{
+	
+	return HeroUIComponent;
+}
+
+UHeroUIComponent* AWarriorHeroCharacter::GetHeroUIComponent() const
+{
+
+	return HeroUIComponent;
 }
 
 void AWarriorHeroCharacter::PossessedBy(AController* NewController)

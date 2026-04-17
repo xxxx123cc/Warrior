@@ -69,4 +69,13 @@ public:
 	
 	UFUNCTION(BlueprintCallable,Category="Warrior|FunctionLibrary",meta=(DisplayName="获取战斗组件",ExpandEnumAsExecs = "OutValid"))
 	static  UPawnCombatComponent* BP_GetPawnCombatComponentFromActor(AActor* InActor,EWarriorValidType& OutValid);
+
+	
+
+
+
+
+
+
+
 };

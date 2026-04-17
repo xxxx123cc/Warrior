@@ -13,6 +13,7 @@ class UCameraComponent;
 class UDataAsset_InputConfig;
 struct FInputActionValue;
 class UHeroCombatComponent;
+class UHeroUIComponent	;
 /**
  
  */
@@ -23,6 +24,9 @@ class WARRIOR_API AWarriorHeroCharacter : public AWarriorBaseCharacter
 public:
 	AWarriorHeroCharacter();
 	virtual UPawnCombatComponent* GetPawnCombatComponent() const override ;
+	
+	virtual UPawnUIComponent* GetPawnUIComponent() const override ;
+	virtual UHeroUIComponent* GetHeroUIComponent() const override ;
 protected:
 	//~ Begin APawn Interface
 	virtual void PossessedBy(AController* NewController) override;
@@ -41,6 +45,8 @@ private:
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Combat", meta=(AllowPrivateAccess="true"))
 	UHeroCombatComponent* HeroCombatComponent;//2026.3.31-添加战斗组件
 	
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Combat", meta=(AllowPrivateAccess="true"))
+	UHeroUIComponent* HeroUIComponent;//2026-4.12添加UI组件
 	
 #pragma endregion//添加弹簧臂和摄影机
 

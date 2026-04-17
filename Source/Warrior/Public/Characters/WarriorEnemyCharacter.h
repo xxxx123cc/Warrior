@@ -4,9 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Characters/WarriorBaseCharacter.h"
+#include "Components/Widget.h"
 #include "WarriorEnemyCharacter.generated.h"
 
 class UEnemyCombatComponent;
+class UWidgetComponent;
 /**
  * 
  */
@@ -18,12 +20,25 @@ public:
 	AWarriorEnemyCharacter();
 	
 	virtual UPawnCombatComponent* GetPawnCombatComponent() const override ;
+	
+	virtual UPawnUIComponent* GetPawnUIComponent() const override ;
+	
+	virtual UEnemyUIComponent* GetEnemyUIComponent() const override;
 protected:
 	//初始化角色(采用异步加载）
 	virtual void PossessedBy(AController* NewController) override;
 	
+	virtual void BeginPlay() override;
+	
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="combat")
 	UEnemyCombatComponent* EnemyCombatComponent;
+	
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="UI")
+	UEnemyUIComponent* EnemyUIComponent;
+	
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="UI")
+	UWidgetComponent* EnemyHealthBarWidget;
+	
 private:
 	void InitEnemyStartUpData();
 	

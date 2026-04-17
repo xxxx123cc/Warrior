@@ -8,6 +8,9 @@
 #include "DataAssets/StartUpData/DataAsset_StartUpDataBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/AssetManager.h"
+#include "Components/UI/EnemyUIComponent.h"
+#include "Components/WidgetComponent.h"
+#include "Widgets/WarriorWidgetBase.h"
 #include "Warrior/Public/DataAssets/StartUpData/DataAsset_EnemyStartUpData.h"
 
 AWarriorEnemyCharacter::AWarriorEnemyCharacter()
@@ -27,6 +30,10 @@ AWarriorEnemyCharacter::AWarriorEnemyCharacter()
 	
 	EnemyCombatComponent= CreateDefaultSubobject<UEnemyCombatComponent>("UEnemyCombatComponent");
 	
+	EnemyUIComponent= CreateDefaultSubobject<UEnemyUIComponent>("UEnemyUIComponent");
+	
+	EnemyHealthBarWidget= CreateDefaultSubobject<UWidgetComponent>("EnemyHealthBarWidget");
+	EnemyHealthBarWidget->SetupAttachment(GetMesh());
 }
 
 UPawnCombatComponent* AWarriorEnemyCharacter::GetPawnCombatComponent() const
@@ -34,10 +41,34 @@ UPawnCombatComponent* AWarriorEnemyCharacter::GetPawnCombatComponent() const
 	return EnemyCombatComponent;
 }
 
+UPawnUIComponent* AWarriorEnemyCharacter::GetPawnUIComponent() const
+{
+	
+	return EnemyUIComponent;
+}
+
+UEnemyUIComponent* AWarriorEnemyCharacter::GetEnemyUIComponent() const
+{
+
+	return EnemyUIComponent;
+}
+
 void AWarriorEnemyCharacter::PossessedBy(AController* NewController)
 { 
 	Super::PossessedBy(NewController);
 	InitEnemyStartUpData();
+}
+
+void AWarriorEnemyCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	UWarriorWidgetBase* EnemyHealthWidget = Cast<UWarriorWidgetBase>(EnemyHealthBarWidget->GetUserWidgetObject());
+	{
+		if (EnemyHealthWidget)
+		{
+			EnemyHealthWidget->InitEnemyWidget(this);
+		}
+	}
 }
 
 void AWarriorEnemyCharacter::InitEnemyStartUpData()

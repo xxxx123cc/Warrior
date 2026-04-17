@@ -10,6 +10,7 @@
 class UWarriorHeroLinkedAnimLayer;
 class UWarriorHeroGameplayAbility;
 class UInputMappingContext;
+class UTexture2D;
 /**
  * 
  */
@@ -49,6 +50,10 @@ struct FWarriorHeroWeaponData
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,meta=(TitleProperty = "InpuTag"))
 	TArray<FWarriorHeroAbilitySets> DefaultWeaponAbilities;
 	//基础伤害，后续可以根据武器类型、英雄属性等进行调整
+	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category="WeaponData")
+	TSoftObjectPtr< UTexture2D> SoftWeaponIconTexture;
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,meta=(TitleProperty = "InpuTag"))
 	FScalableFloat WeaponBaseDamage;
+	
+	
 };
