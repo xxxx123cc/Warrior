@@ -70,7 +70,8 @@ public:
 	UFUNCTION(BlueprintCallable,Category="Warrior|FunctionLibrary",meta=(DisplayName="获取战斗组件",ExpandEnumAsExecs = "OutValid"))
 	static  UPawnCombatComponent* BP_GetPawnCombatComponentFromActor(AActor* InActor,EWarriorValidType& OutValid);
 
-	
+	UFUNCTION(BlueprintPure,Category="Warrior|FunctionLibrary")
+	static bool IsTargetPawnHostile(APawn* QueryPawn,APawn* TargetPawn);
 
 
 

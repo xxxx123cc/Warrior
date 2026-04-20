@@ -30,7 +30,6 @@ float UHeroCombatComponent::GetHeroCurrentEquipWeaponDamageAtLevel(float InLevel
 void UHeroCombatComponent::OnHitTargetActor(AActor* HitActor)
 {
 	
-	
 	if (OverlapActors.Contains(HitActor))
 	{
 		return;
