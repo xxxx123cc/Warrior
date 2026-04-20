@@ -36,4 +36,11 @@ protected:
 	// 标记角色当前是否正在加速
 	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="AnimData|Locomotion")
 	bool bHasAcceleration;
+	
+	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="AnimData|Locomotion")
+	float LocomotionDirection;
+	
+	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="AnimData|Locomotion")
+	bool bShouldStrafing;
+	
 };

@@ -4,9 +4,10 @@
 #include "WarriorFunctionLibrary.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Warrior/Public/AbilitySystem/WarriorAbilitySystemComponent.h"
-#include "BlueprintGameplayTagLibrary.h"
-#include "Warrior/Public/Characters/WarriorBaseCharacter.h"
+//#include "BlueprintGameplayTagLibrary.h"
+//#include "Warrior/Public/Characters/WarriorBaseCharacter.h"
 #include"Warrior/Public/Interfaces/PawnCombatInterface.h"
+#include "GenericTeamAgentInterface.h"
 /**
  * @brief 从Actor获取WarriorAbilitySystemComponent
  * @param InActor 目标Actor
@@ -109,5 +110,17 @@ UPawnCombatComponent* UWarriorFunctionLibrary::BP_GetPawnCombatComponentFromActo
 	UPawnCombatComponent*CombatComponent= NativeGetPawnCombatComponentFromActor(InActor) ;
      OutValid= CombatComponent?EWarriorValidType::Valid:EWarriorValidType::InValid;
 	 return CombatComponent;
+}
+
+bool UWarriorFunctionLibrary::IsTargetPawnHostile(APawn* QueryPawn, APawn* TargetPawn)
+{
+	// 获取两个Pawn的TeamID
+	FGenericTeamId QueryTeamID = Cast<IGenericTeamAgentInterface>(QueryPawn->GetController())->GetGenericTeamId();
+	FGenericTeamId TargetTeamID = Cast<IGenericTeamAgentInterface>(TargetPawn->GetController())->GetGenericTeamId();
+	if (QueryPawn&&TargetTeamID)
+	{
+		return TargetTeamID != QueryTeamID;
+	}
+return false;
 }
 
