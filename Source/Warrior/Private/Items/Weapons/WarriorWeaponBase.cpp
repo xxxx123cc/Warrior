@@ -3,7 +3,7 @@
 
 #include "Items/Weapons/WarriorWeaponBase.h"
 #include "Components/BoxComponent.h"
-#include "WarriorFunctionLibrary.h"
+
 AWarriorWeaponBase::AWarriorWeaponBase()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -25,16 +25,14 @@ AWarriorWeaponBase::AWarriorWeaponBase()
 void AWarriorWeaponBase::OnWeaponOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (!OtherActor) return;
 	APawn*WeaponOwningPawn = GetInstigator<APawn>();
-	
 	if (APawn* HitAPawn = Cast<APawn>(OtherActor))
 	{
-		if (UWarriorFunctionLibrary::IsTargetPawnHostile(WeaponOwningPawn,HitAPawn))
+		if (WeaponOwningPawn!=HitAPawn)
 		{
 			OnWeaponHitTarget.ExecuteIfBound(OtherActor);
 		}
-		
+		//为敌方实现检查
 	}
 }
 
@@ -44,11 +42,11 @@ void AWarriorWeaponBase::OnWeaponOverlapEnd(UPrimitiveComponent* OverlappedCompo
 	APawn*WeaponOwningPawn = GetInstigator<APawn>();
 	if (APawn* HitAPawn = Cast<APawn>(OtherActor))
 	{
-		if (UWarriorFunctionLibrary::IsTargetPawnHostile(WeaponOwningPawn,HitAPawn))
+		if (WeaponOwningPawn!=HitAPawn)
 		{
-			OnWeaponHitTarget.ExecuteIfBound(OtherActor);
+			OnWeaponEndOverlapTarget.ExecuteIfBound(OtherActor);
 		}
-		
+		//为敌方实现检查
 	}
 }
 

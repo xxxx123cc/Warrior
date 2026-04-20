@@ -68,29 +68,3 @@ void UWarriorAbilitySystemComponent::RemoveGrantedHeroAbilities(
 	InSpecHandlesToRemove.Empty();
 }
 
-bool UWarriorAbilitySystemComponent::TryActivateAbilityByTag(FGameplayTag AbilityTagToActivate)
-{
-	 check(AbilityTagToActivate.IsValid());
-	// for (const FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
-	// {		if (AbilitySpec.Ability->AbilityTags.HasTagExact(AbilityTagToActivate))
-	// 	{			return TryActivateAbility(AbilitySpec.Handle);
-	// 	}	}
-	// return false;
-	TArray<FGameplayAbilitySpec*> FoundAbilitySpecs;
-	GetActivatableGameplayAbilitySpecsByAllMatchingTags(AbilityTagToActivate.GetSingleTagContainer(), FoundAbilitySpecs);
-	
-	if (!FoundAbilitySpecs.IsEmpty())
-	{
-		const int32 RandomAbilityIndex=FMath::RandRange(0, FoundAbilitySpecs.Num() - 1);
-		FGameplayAbilitySpec *SpecToActivate = FoundAbilitySpecs[RandomAbilityIndex];
-		
-		if (!SpecToActivate->IsActive())
-		{
-			return TryActivateAbility(SpecToActivate->Handle);
-		}
-	
-	}
-		return false;
-	
-}
-

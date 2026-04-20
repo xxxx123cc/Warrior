@@ -10,7 +10,7 @@ public class Warrior : ModuleRules
 	
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
-			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayTags", "GameplayTasks","GameplayAbilities","AIModule","AnimGraphRuntime",
+			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayTags", "GameplayTasks","GameplayAbilities",
 		});//添加必要的模块
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

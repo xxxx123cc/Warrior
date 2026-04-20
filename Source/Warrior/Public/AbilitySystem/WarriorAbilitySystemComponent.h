@@ -24,6 +24,4 @@ public:
 	UFUNCTION(BlueprintCallable,Category="Warroir|Ability")
 	void RemoveGrantedHeroAbilities(UPARAM(ref) TArray<FGameplayAbilitySpecHandle>& InSpecHandlesToRemove);
 
-	UFUNCTION(BlueprintCallable,Category="Warroir|Ability")
-	bool TryActivateAbilityByTag(FGameplayTag AbilityTagToActivate);
 };
