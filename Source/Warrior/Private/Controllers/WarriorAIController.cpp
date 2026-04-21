@@ -6,6 +6,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Navigation/CrowdFollowingComponent.h"
 #include "Perception/AIPerceptionComponent.h"
+#include "Perception/AIPerceptionTypes.h"
 #include "Perception/AISenseConfig_Sight.h"
 
 AWarriorAIController::AWarriorAIController(const FObjectInitializer& ObjectInitializer)
@@ -81,14 +82,40 @@ void AWarriorAIController::BeginPlay()
 
 void AWarriorAIController::OnPerceptionUpdated(const TArray<AActor*>& UpdatedActors)
 {
-	
-	
+	UBlackboardComponent* BlackboardComponent = GetBlackboardComponent();
+	if (!BlackboardComponent || !WarriorAIPerceptionComponent)
+	{
+		return;
+	}
+
+	static const FName TargetActorKeyName(TEXT("TargetActor"));
+
 	for (AActor* Actor : UpdatedActors)
 	{
-		// 将最新感知到的目标写入黑板，供行为树中的 MoveTo 等节点读取。
-		if (UBlackboardComponent* BlackboardComponent = GetBlackboardComponent())
+		if (!Actor)
 		{
-			BlackboardComponent->SetValueAsObject("TargetActor", Actor);
+			continue;
+		}
+
+		FActorPerceptionBlueprintInfo PerceptionInfo;
+		WarriorAIPerceptionComponent->GetActorsPerception(Actor, PerceptionInfo);
+
+		const bool bSuccessfullySensed = PerceptionInfo.LastSensedStimuli.ContainsByPredicate(
+			[](const FAIStimulus& Stimulus)
+			{
+				return Stimulus.WasSuccessfullySensed();
+			}
+		);
+
+		if (bSuccessfullySensed)
+		{
+			// 感知成功时写入黑板，供行为树中的 MoveTo 等节点读取。
+			BlackboardComponent->SetValueAsObject(TargetActorKeyName, Actor);
+		}
+		else if (BlackboardComponent->GetValueAsObject(TargetActorKeyName) == Actor)
+		{
+			// 当前黑板目标已丢失感知时清空，避免行为树继续追踪旧目标。
+			BlackboardComponent->ClearValue(TargetActorKeyName);
 		}
 	}
 }
