@@ -10,7 +10,7 @@
 
 #include "Characters/WarriorBaseCharacter.h"
 #include "AbilitySystem/WarriorAbilitySystemComponent.h"
-
+#include "MotionWarpingComponent.h"
 #include "AbilitySystem/WarriorAttributeSet.h"
 #include "Interfaces/PawnCombatInterface.h"
 // Sets default values
@@ -23,6 +23,7 @@ AWarriorBaseCharacter::AWarriorBaseCharacter()
 
 	WarriorAbilitySystemComponent = CreateDefaultSubobject<UWarriorAbilitySystemComponent>(TEXT("WarriorAbilitySystemComponent"));
 	WarriorAttributeSet = CreateDefaultSubobject<UWarriorAttributeSet>(TEXT("WarriorAttributeSet"));
+	MotionWarpingComponent = CreateDefaultSubobject<UMotionWarpingComponent>(TEXT("MotionWarpingComponent"));
 
     
 }

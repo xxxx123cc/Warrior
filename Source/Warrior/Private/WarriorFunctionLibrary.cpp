@@ -8,6 +8,10 @@
 //#include "Warrior/Public/Characters/WarriorBaseCharacter.h"
 #include"Warrior/Public/Interfaces/PawnCombatInterface.h"
 #include "GenericTeamAgentInterface.h"
+#include "MeshPaintVisualize.h"
+#include "WarriorDebugHelper.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "WarriorGameplayTags.h"
 /**
  * @brief 从Actor获取WarriorAbilitySystemComponent
  * @param InActor 目标Actor
@@ -117,10 +121,67 @@ bool UWarriorFunctionLibrary::IsTargetPawnHostile(APawn* QueryPawn, APawn* Targe
 	// 获取两个Pawn的TeamID
 	FGenericTeamId QueryTeamID = Cast<IGenericTeamAgentInterface>(QueryPawn->GetController())->GetGenericTeamId();
 	FGenericTeamId TargetTeamID = Cast<IGenericTeamAgentInterface>(TargetPawn->GetController())->GetGenericTeamId();
-	if (QueryPawn&&TargetTeamID)
+	
+	if (QueryTeamID == TargetTeamID)
+		return false;
+	else
 	{
-		return TargetTeamID != QueryTeamID;
+		return true;
 	}
-return false;
 }
 
+FGameplayTag UWarriorFunctionLibrary::ComputeAttackDirectionTag(AActor* AttackerPawn, AActor* TargetPawn,
+	float& OutAngleDifference)
+{
+	check(AttackerPawn&&TargetPawn)
+	
+	const FVector TargetForwardVector = TargetPawn->GetActorForwardVector();
+	
+	const FVector TargetToAttackerPawnNormalized = (AttackerPawn->GetActorLocation() - TargetPawn->GetActorLocation()).GetSafeNormal();
+	
+	const float DotResult = FVector::DotProduct(TargetForwardVector, TargetToAttackerPawnNormalized);
+	
+	OutAngleDifference = UKismetMathLibrary::DegAcos(DotResult);
+	
+	const FVector CrossResult = FVector::CrossProduct(TargetForwardVector, TargetToAttackerPawnNormalized);
+	
+	if (CrossResult.Z <0)
+	{
+		OutAngleDifference = -OutAngleDifference;
+	}
+	if (OutAngleDifference>=-45&&OutAngleDifference<=45)
+	{
+		return WarriorGameplayTags::Shared_Status_HitReact_Front;
+	}
+	if (OutAngleDifference>45&&OutAngleDifference<=135)
+	{
+		return WarriorGameplayTags::Shared_Status_HitReact_Right;
+	}
+	if (OutAngleDifference<-45&&OutAngleDifference>=-135)
+	{
+		return WarriorGameplayTags::Shared_Status_HitReact_Left;
+	}	
+	return WarriorGameplayTags::Shared_Status_HitReact_Back;
+	
+}
+
+
+	bool UWarriorFunctionLibrary::IsValidBlock(AActor* InAttacker, AActor* TargetActor)
+{
+	check(InAttacker && TargetActor);
+
+	const FVector TargetForward = TargetActor->GetActorForwardVector();
+
+	const FVector DirectionToAttacker =
+		(InAttacker->GetActorLocation() - TargetActor->GetActorLocation()).GetSafeNormal();
+
+	const float DotResult = FVector::DotProduct(TargetForward, DirectionToAttacker);
+
+	// cos(45°) ≈ 0.707
+	const bool bIsInFront45Degree = DotResult >= 0.6;
+
+	Debug::print(FString::Printf(TEXT("DotResult: %f"), DotResult), FColor::Red);
+
+	return bIsInFront45Degree;
+	
+}

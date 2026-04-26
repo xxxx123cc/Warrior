@@ -4,6 +4,7 @@
 #include "Items/Weapons/WarriorWeaponBase.h"
 #include "Components/BoxComponent.h"
 #include "WarriorFunctionLibrary.h"
+#include "WarriorDebugHelper.h"
 AWarriorWeaponBase::AWarriorWeaponBase()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -25,7 +26,9 @@ AWarriorWeaponBase::AWarriorWeaponBase()
 void AWarriorWeaponBase::OnWeaponOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	Debug::print(TEXT("EnemyCombatComponent::OnHitTargetActor,1重叠事件"));
 	if (!OtherActor) return;
+	Debug::print(TEXT("EnemyCombatComponent::OnHitTargetActor,2重叠事件"));
 	APawn*WeaponOwningPawn = GetInstigator<APawn>();
 	
 	if (APawn* HitAPawn = Cast<APawn>(OtherActor))
@@ -33,6 +36,7 @@ void AWarriorWeaponBase::OnWeaponOverlapBegin(UPrimitiveComponent* OverlappedCom
 		if (UWarriorFunctionLibrary::IsTargetPawnHostile(WeaponOwningPawn,HitAPawn))
 		{
 			OnWeaponHitTarget.ExecuteIfBound(OtherActor);
+			Debug::print(TEXT("EnemyCombatComponent::OnHitTargetActor,3重叠事件"));
 		}
 		
 	}
@@ -41,12 +45,14 @@ void AWarriorWeaponBase::OnWeaponOverlapBegin(UPrimitiveComponent* OverlappedCom
 void AWarriorWeaponBase::OnWeaponOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
+	Debug::print(TEXT("EnemyCombatComponent::OnHitTargetActor,重叠事件"));
+	if (!OtherActor) return;
 	APawn*WeaponOwningPawn = GetInstigator<APawn>();
 	if (APawn* HitAPawn = Cast<APawn>(OtherActor))
 	{
 		if (UWarriorFunctionLibrary::IsTargetPawnHostile(WeaponOwningPawn,HitAPawn))
 		{
-			OnWeaponHitTarget.ExecuteIfBound(OtherActor);
+			OnWeaponEndOverlapTarget.ExecuteIfBound(OtherActor);
 		}
 		
 	}

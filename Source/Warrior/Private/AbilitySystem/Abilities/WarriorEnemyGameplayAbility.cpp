@@ -11,7 +11,7 @@ AWarriorEnemyCharacter* UWarriorEnemyGameplayAbility::GetEnemyCharacterFromActor
 	if (!CachedEnemyCharacter.IsValid())
 	CachedEnemyCharacter = Cast<AWarriorEnemyCharacter>(GetAvatarActorFromActorInfo());
 	return CachedEnemyCharacter.IsValid() ? CachedEnemyCharacter.Get() : nullptr;
-	
+	//
 }
 
 UEnemyCombatComponent* UWarriorEnemyGameplayAbility::GetEnemyCombatComponent()
