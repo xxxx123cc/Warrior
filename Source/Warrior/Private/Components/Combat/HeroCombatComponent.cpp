@@ -44,6 +44,7 @@ void UHeroCombatComponent::OnHitTargetActor(AActor* HitActor)
 
 void UHeroCombatComponent::OnWeaponEndOverlapTarget(AActor* EndOverlapActor)
 {
+	Super::OnWeaponEndOverlapTarget(EndOverlapActor);
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetOwningPawn(),WarriorGameplayTags::Player_Event_HitPause,FGameplayEventData());
 	
 }

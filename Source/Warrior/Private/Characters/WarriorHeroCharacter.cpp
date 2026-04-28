@@ -13,11 +13,12 @@
 #include"Components/Input/WarriorInputComponent.h"
 #include "WarriorGameplayTags.h"
 #include "AbilitySystem/WarriorAbilitySystemComponent.h"
-#include "AbilitySystem/WarriorAttributeSet.h"
+#include "AbilitySystemBlueprintLibrary.h"
 #include "GameFramework/PlayerController.h"
 #include "DataAssets/StartUpData/DataAsset_Hero_StartUpData.h"
 #include "Components/Combat/HeroCombatComponent.h"
 #include "Components/UI/HeroUIComponent.h"
+#include "WarriorFunctionLibrary.h"
 AWarriorHeroCharacter::AWarriorHeroCharacter()
 {
 	GetCapsuleComponent()->InitCapsuleSize(42.f,96.f);
@@ -107,6 +108,10 @@ void AWarriorHeroCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 	
 	WarriorInputComponent->BindNativeInputAction(InputConfigDataAsset,WarriorGameplayTags::InputTag_Look,ETriggerEvent::Triggered,this,&ThisClass::Input_Look);
 	
+	WarriorInputComponent->BindNativeInputAction(InputConfigDataAsset,WarriorGameplayTags::InputTag_SwitchTarget,ETriggerEvent::Triggered,this,&ThisClass::Input_SwitchTargetTriggered);
+	
+	WarriorInputComponent->BindNativeInputAction(InputConfigDataAsset,WarriorGameplayTags::InputTag_SwitchTarget,ETriggerEvent::Completed,this,&ThisClass::Input_SwitchTargetCompleted);
+	
 	WarriorInputComponent->BindAbilityInputAction(InputConfigDataAsset,this,&ThisClass::Input_AbilityInputPressed,&ThisClass::Input_AbilityInputReleased);
 }
 
@@ -115,7 +120,7 @@ void AWarriorHeroCharacter::Input_Move(const FInputActionValue& InputActionValue
 	const FVector2D MovementVector = InputActionValue.Get<FVector2D>();
 	
     const FRotator  MovementRotator(0.f,Controller->GetControlRotation().Yaw,0.f);
-	
+	 
 	if (MovementVector.Y!=0.f)
 	{
 		const FVector ForwardDirection =MovementRotator.RotateVector(FVector::ForwardVector) ;
@@ -139,6 +144,11 @@ void AWarriorHeroCharacter::Input_Move(const FInputActionValue& InputActionValue
 
 void AWarriorHeroCharacter::Input_Look(const FInputActionValue& InputActionValue)
 {
+	if (UWarriorFunctionLibrary::NativeDoesActorHaveTag(this, WarriorGameplayTags::Player_Status_TargetLock))
+	{
+		return;
+	}
+
 	const FVector2D LookAxisVector = InputActionValue.Get<FVector2D>();
 	
 	if (LookAxisVector.X!=0.f)
@@ -151,6 +161,21 @@ void AWarriorHeroCharacter::Input_Look(const FInputActionValue& InputActionValue
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
 	// 处理视角输入的回调。InputActionValue 中会包含轴向值或按键状态
+}
+
+void AWarriorHeroCharacter::Input_SwitchTargetTriggered(const FInputActionValue& InputActionValue)
+{
+	SwitchDirection = InputActionValue.Get<FVector2D>();
+}
+
+void AWarriorHeroCharacter::Input_SwitchTargetCompleted(const FInputActionValue& InputActionValue)
+{
+	FGameplayEventData Data;
+	
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this,
+	SwitchDirection.X>0.f?WarriorGameplayTags::Player_Event_SwitchTarget_Right:WarriorGameplayTags::Player_Event_SwitchTarget_Left
+	,Data);
+	
 }
 
 void AWarriorHeroCharacter::Input_AbilityInputPressed(FGameplayTag Input_Tag)

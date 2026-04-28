@@ -8,6 +8,7 @@
 #include "WarriorWeaponBase.generated.h"
 
 class UBoxComponent;
+class APawn;
 
 DECLARE_DELEGATE_OneParam(FOnTargetInteractedDelegate,AActor*)
 
@@ -30,14 +31,16 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Box")
 	UBoxComponent* WeaponCollisionBox;
+
 	UFUNCTION()
 	virtual void OnWeaponOverlapBegin( UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
 	UFUNCTION()
  	virtual void OnWeaponOverlapEnd( UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp ,int32 OtherBodyIndex);
 
+	virtual void HandleWeaponClash(class AWarriorWeaponBase* OtherWeapon, const FHitResult& SweepResult);
+	virtual void NotifyOwnerWeaponClash(class AWarriorWeaponBase* OtherWeapon, const FVector& ClashLocation) const;
+	APawn* GetWeaponOwningPawn() const;
+
 public:
 	FORCEINLINE UBoxComponent* GetWeaponCollisionMesh() const { return WeaponCollisionBox; }
-
-	
-
 };

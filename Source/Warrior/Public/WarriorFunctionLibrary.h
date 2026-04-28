@@ -77,7 +77,7 @@ public:
 	static FGameplayTag ComputeAttackDirectionTag(AActor* AttackerPawn,AActor* TargetPawn,float& OutAngleDifference);
 
 	UFUNCTION(BlueprintPure,Category="Warrior|FunctionLibrary")
-	static bool IsValidBlock(AActor* InAttacker,AActor* TargetActor);
+	static bool IsValidBlock(AActor* InAttacker, AActor* InDefender);
 
 	
 

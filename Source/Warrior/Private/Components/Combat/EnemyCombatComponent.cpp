@@ -45,5 +45,5 @@ void UEnemyCombatComponent::OnHitTargetActor(AActor* HitActor)
 
 void UEnemyCombatComponent::OnWeaponEndOverlapTarget(AActor* EndOverlapActor)
 {
-	
+	Super::OnWeaponEndOverlapTarget(EndOverlapActor);
 }

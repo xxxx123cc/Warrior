@@ -11,6 +11,8 @@
 #include "MeshPaintVisualize.h"
 #include "WarriorDebugHelper.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Components/Combat/PawnCombatComponent.h"
+#include "Items/Weapons/WarriorWeaponBase.h"
 #include "WarriorGameplayTags.h"
 /**
  * @brief 从Actor获取WarriorAbilitySystemComponent
@@ -166,22 +168,64 @@ FGameplayTag UWarriorFunctionLibrary::ComputeAttackDirectionTag(AActor* Attacker
 }
 
 
-	bool UWarriorFunctionLibrary::IsValidBlock(AActor* InAttacker, AActor* TargetActor)
+bool UWarriorFunctionLibrary::IsValidBlock(AActor* InAttacker, AActor* InDefender)
 {
-	check(InAttacker && TargetActor);
+	check(InAttacker && InDefender);
 
-	const FVector TargetForward = TargetActor->GetActorForwardVector();
+	constexpr float CloseRangeThreshold = 150.f;
+	constexpr float BlockHalfAngleDegrees = 70.f;
+	const float BlockDotThreshold = FMath::Cos(FMath::DegreesToRadians(BlockHalfAngleDegrees));
 
-	const FVector DirectionToAttacker =
-		(InAttacker->GetActorLocation() - TargetActor->GetActorLocation()).GetSafeNormal();
+	FVector AttackOrigin = InAttacker->GetActorLocation();
 
-	const float DotResult = FVector::DotProduct(TargetForward, DirectionToAttacker);
+	if (UPawnCombatComponent* AttackerCombatComponent = NativeGetPawnCombatComponentFromActor(InAttacker))
+	{
+		if (AWarriorWeaponBase* CurrentWeapon = AttackerCombatComponent->GetCurrentEquippedWeapon())
+		{
+			if (UBoxComponent* WeaponCollisionBox = CurrentWeapon->GetWeaponCollisionMesh())
+			{
+				AttackOrigin = WeaponCollisionBox->GetComponentLocation();
+			}
+		}
+	}
 
-	// cos(45°) ≈ 0.707
-	const bool bIsInFront45Degree = DotResult >= 0.6;
+	FVector DefenderForward = InDefender->GetActorForwardVector();
+	DefenderForward.Z = 0.f;
+	DefenderForward = DefenderForward.GetSafeNormal();
 
-	Debug::print(FString::Printf(TEXT("DotResult: %f"), DotResult), FColor::Red);
+	if (DefenderForward.IsNearlyZero())
+	{
+		return false;
+	}
 
-	return bIsInFront45Degree;
-	
+	FVector DefenderToAttackOrigin = AttackOrigin - InDefender->GetActorLocation();
+	DefenderToAttackOrigin.Z = 0.f;
+
+	float DotResult = -1.f;
+
+	const float PositionDot = FVector::DotProduct(DefenderForward, DefenderToAttackOrigin.GetSafeNormal2D());
+
+	// 近距离时武器盒子和角色根节点会快速穿插，朝向信息比纯位置更稳定
+	if (DefenderToAttackOrigin.SizeSquared2D() <= FMath::Square(CloseRangeThreshold))
+	{
+		FVector AttackerForward = InAttacker->GetActorForwardVector();
+		AttackerForward.Z = 0.f;
+		AttackerForward = AttackerForward.GetSafeNormal();
+
+		if (AttackerForward.IsNearlyZero())
+		{
+			return false;
+		}
+
+		const float FacingDot = FVector::DotProduct(DefenderForward, -AttackerForward);
+		DotResult = FMath::Max(PositionDot, FacingDot);
+	}
+	else
+	{
+		DotResult = PositionDot;
+	}
+
+	Debug::print(FString::Printf(TEXT("BlockDot: %.2f"), DotResult), FColor::Red);
+
+	return DotResult >= 0.6;
 }

@@ -51,14 +51,21 @@ void UPawnCombatComponent::ToggleWeaponCollision(bool bEnableCollision, EToggleD
 	{
 	if(AWarriorWeaponBase* CurrentWeapon=GetCurrentEquippedWeapon())
 	{
+		UBoxComponent* WeaponCollisionBox = CurrentWeapon->GetWeaponCollisionMesh();
+		if (!WeaponCollisionBox)
+		{
+			return;
+		}
+
 		if (bEnableCollision)
 		{
-			CurrentWeapon->GetWeaponCollisionMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-			;
+			OverlapActors.Empty();
+			WeaponCollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+			WeaponCollisionBox->UpdateOverlaps();
 		}
 		else
 		{
-			CurrentWeapon->GetWeaponCollisionMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			WeaponCollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			OverlapActors.Empty();
 			
 		
@@ -77,6 +84,9 @@ void UPawnCombatComponent::OnHitTargetActor(AActor* HitActor)
 
 void UPawnCombatComponent::OnWeaponEndOverlapTarget(AActor* EndOverlapActor)
 {
-	
+	if (EndOverlapActor)
+	{
+		OverlapActors.RemoveSingleSwap(EndOverlapActor);
+	}
 	
 }
