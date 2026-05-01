@@ -7,7 +7,15 @@
 #include "Navigation/CrowdFollowingComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AIPerceptionTypes.h"
+#include "Perception/AISense_Sight.h"
 #include "Perception/AISenseConfig_Sight.h"
+#include "TimerManager.h"
+
+namespace
+{
+	const FName TargetActorKeyName(TEXT("TargetActor"));
+	constexpr float TargetActorMemoryDuration = 5.f;
+}
 
 AWarriorAIController::AWarriorAIController(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>("PathFollowingComponent"))
@@ -88,8 +96,6 @@ void AWarriorAIController::OnPerceptionUpdated(const TArray<AActor*>& UpdatedAct
 		return;
 	}
 
-	static const FName TargetActorKeyName(TEXT("TargetActor"));
-
 	for (AActor* Actor : UpdatedActors)
 	{
 		if (!Actor)
@@ -103,19 +109,58 @@ void AWarriorAIController::OnPerceptionUpdated(const TArray<AActor*>& UpdatedAct
 		const bool bSuccessfullySensed = PerceptionInfo.LastSensedStimuli.ContainsByPredicate(
 			[](const FAIStimulus& Stimulus)
 			{
-				return Stimulus.WasSuccessfullySensed();
+				return Stimulus.Type == UAISense::GetSenseID<UAISense_Sight>() && Stimulus.WasSuccessfullySensed();
 			}
 		);
 
 		if (bSuccessfullySensed)
 		{
-			// 感知成功时写入黑板，供行为树中的 MoveTo 等节点读取。
+			// Refresh the current target and cancel any pending sight-memory clear.
+			GetWorldTimerManager().ClearTimer(ClearTargetActorTimerHandle);
+			RememberedTargetActor.Reset();
 			BlackboardComponent->SetValueAsObject(TargetActorKeyName, Actor);
 		}
 		else if (BlackboardComponent->GetValueAsObject(TargetActorKeyName) == Actor)
 		{
-			// 当前黑板目标已丢失感知时清空，避免行为树继续追踪旧目标。
-			BlackboardComponent->ClearValue(TargetActorKeyName);
+			// Keep the last seen target briefly before clearing it from the blackboard.
+			StartTargetActorMemory(Actor);
 		}
 	}
+}
+
+void AWarriorAIController::StartTargetActorMemory(AActor* ActorToRemember)
+{
+	if (!ActorToRemember)
+	{
+		return;
+	}
+
+	RememberedTargetActor = ActorToRemember;
+
+	if (TargetActorMemoryDuration <= 0.f)
+	{
+		ClearRememberedTargetActor();
+		return;
+	}
+
+	GetWorldTimerManager().SetTimer(
+		ClearTargetActorTimerHandle,
+		this,
+		&ThisClass::ClearRememberedTargetActor,
+		TargetActorMemoryDuration,
+		false
+	);
+}
+
+void AWarriorAIController::ClearRememberedTargetActor()
+{
+	UBlackboardComponent* BlackboardComponent = GetBlackboardComponent();
+	AActor* ActorToForget = RememberedTargetActor.Get();
+
+	if (BlackboardComponent && (!ActorToForget || BlackboardComponent->GetValueAsObject(TargetActorKeyName) == ActorToForget))
+	{
+		BlackboardComponent->ClearValue(TargetActorKeyName);
+	}
+
+	RememberedTargetActor.Reset();
 }

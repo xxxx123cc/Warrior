@@ -19,7 +19,11 @@ void UEnemyCombatComponent::OnHitTargetActor(AActor* HitActor)
 	 bool bIsValidBlock=false;
 	const bool bIsPlayerBlocking =UWarriorFunctionLibrary::NativeDoesActorHaveTag(HitActor,WarriorGameplayTags::Player_Status_Blocking);
 	//此攻击角色不可格挡
-	const bool bIsMyAttackUnblockable = false;
+	 bool bIsMyAttackUnblockable = false;
+	if (UWarriorFunctionLibrary::NativeDoesActorHaveTag(GetOwningPawn(),WarriorGameplayTags::Enemy_Status_UnBlockable))
+	{
+		bIsMyAttackUnblockable=true;
+	}
 	FGameplayEventData EventData;
 	EventData.Instigator = GetOwningPawn();
 	EventData.Target = HitActor;

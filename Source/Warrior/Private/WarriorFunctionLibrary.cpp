@@ -121,15 +121,18 @@ UPawnCombatComponent* UWarriorFunctionLibrary::BP_GetPawnCombatComponentFromActo
 bool UWarriorFunctionLibrary::IsTargetPawnHostile(APawn* QueryPawn, APawn* TargetPawn)
 {
 	// 获取两个Pawn的TeamID
-	FGenericTeamId QueryTeamID = Cast<IGenericTeamAgentInterface>(QueryPawn->GetController())->GetGenericTeamId();
-	FGenericTeamId TargetTeamID = Cast<IGenericTeamAgentInterface>(TargetPawn->GetController())->GetGenericTeamId();
-	
-	if (QueryTeamID == TargetTeamID)
-		return false;
-	else
+	if (!QueryPawn || !TargetPawn || QueryPawn == TargetPawn)
 	{
-		return true;
+		return false;
 	}
+
+	const IGenericTeamAgentInterface* QueryTeamAgent = Cast<IGenericTeamAgentInterface>(QueryPawn->GetController());
+	const IGenericTeamAgentInterface* TargetTeamAgent = Cast<IGenericTeamAgentInterface>(TargetPawn->GetController());
+	
+	if (!QueryTeamAgent || !TargetTeamAgent)
+		return false;
+
+	return QueryTeamAgent->GetGenericTeamId() != TargetTeamAgent->GetGenericTeamId();
 }
 
 FGameplayTag UWarriorFunctionLibrary::ComputeAttackDirectionTag(AActor* AttackerPawn, AActor* TargetPawn,
@@ -228,4 +231,16 @@ bool UWarriorFunctionLibrary::IsValidBlock(AActor* InAttacker, AActor* InDefende
 	Debug::print(FString::Printf(TEXT("BlockDot: %.2f"), DotResult), FColor::Red);
 
 	return DotResult >= 0.6;
+}
+
+bool UWarriorFunctionLibrary::ApplyGameplayEfectHandleToTarget(AActor* Instigator, AActor* TargetActor,
+	const FGameplayEffectSpecHandle& InSpecHandle)
+{
+	UWarriorAbilitySystemComponent* SourceASC= NativeGetWarriorAscFromActor(Instigator);
+	UWarriorAbilitySystemComponent* TargetASC = NativeGetWarriorAscFromActor(TargetActor);
+	FActiveGameplayEffectHandle ActivateGameplayEffectHandle = SourceASC->ApplyGameplayEffectSpecToTarget(*InSpecHandle.Data,TargetASC);
+	return ActivateGameplayEffectHandle.WasSuccessfullyApplied();
+	
+	
+	
 }

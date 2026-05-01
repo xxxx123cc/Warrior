@@ -9,6 +9,7 @@
 #include "TimerManager.h"
 #include "WarriorFunctionLibrary.h"
 #include "WarriorGameplayTags.h"
+#include "WarriorFunctionLibrary.h"
 
 namespace
 {

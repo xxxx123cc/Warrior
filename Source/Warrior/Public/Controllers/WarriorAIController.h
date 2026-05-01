@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "AIController.h"
+#include "Engine/TimerHandle.h"
 #include "WarriorAIController.generated.h"
 
 class UAIPerceptionComponent;
@@ -40,6 +41,9 @@ protected:
 	virtual void OnPerceptionUpdated(const TArray<AActor*>& UpdatedActors);
 
 private:
+	void StartTargetActorMemory(AActor* ActorToRemember);
+	void ClearRememberedTargetActor();
+
 	// 是否启用 Detour Crowd 群体避让。
 	UPROPERTY(EditDefaultsOnly, Category = "detour crowd avoidance config")
 	bool bEnableDetourAvoidance = true;
@@ -51,4 +55,8 @@ private:
 	// 群体避让查询范围，用于决定周围单位的检测半径。
 	UPROPERTY(EditDefaultsOnly, Category = "detour crowd avoidance config", meta = (EditCondition = "bEnableDetourAvoidance"))
 	float CollisionQueryRange = 600.f;
+
+	FTimerHandle ClearTargetActorTimerHandle;
+
+	TWeakObjectPtr<AActor> RememberedTargetActor;
 };
