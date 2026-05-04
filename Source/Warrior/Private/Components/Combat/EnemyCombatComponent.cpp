@@ -7,6 +7,9 @@
 #include "Abilities/GameplayAbilityTypes.h"
 #include  "WarriorDebugHelper.h"
 #include "WarriorFunctionLibrary.h"
+#include "Characters/WarriorEnemyCharacter.h"
+#include "Components/BoxComponent.h"
+
 void UEnemyCombatComponent::OnHitTargetActor(AActor* HitActor)
 {Debug::print(TEXT("EnemyCombatComponent::OnHitTargetActor"));
 	//敌人攻击玩家时，发送一个事件给玩家，玩家接到事件后播放受击动画
@@ -50,4 +53,28 @@ void UEnemyCombatComponent::OnHitTargetActor(AActor* HitActor)
 void UEnemyCombatComponent::OnWeaponEndOverlapTarget(AActor* EndOverlapActor)
 {
 	Super::OnWeaponEndOverlapTarget(EndOverlapActor);
+}
+
+void UEnemyCombatComponent::ToggleCurrentHandCollision(bool bEnableCollision, EToggleDamageType ToggleDamageType)
+{
+	AWarriorEnemyCharacter* OwningCharacter = GetOwningPawn<AWarriorEnemyCharacter>();
+	check(OwningCharacter);
+
+	switch (ToggleDamageType)
+	{
+		case EToggleDamageType::LeftHand:
+			OwningCharacter->GetLeftBoxComponent()->SetCollisionEnabled(bEnableCollision ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+			break;
+		case EToggleDamageType::RightHand:
+			OwningCharacter->GetRightBoxComponent()->SetCollisionEnabled(bEnableCollision ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+			break;
+		default:
+			break;
+		
+	}
+	if (!bEnableCollision)
+	{
+		OverlapActors.Empty();
+	}
+	
 }

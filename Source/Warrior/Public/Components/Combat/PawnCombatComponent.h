@@ -41,11 +41,15 @@ public:
 	//控制武器碰撞 
 	UFUNCTION(BlueprintCallable,Category="Weapon")
 	void ToggleWeaponCollision(bool bEnableCollision,EToggleDamageType ToggleDamageType=EToggleDamageType::CurrentEquippedWeapon);
-
+	
 	virtual  void OnHitTargetActor(AActor* HitActor) ;
 	
 	virtual void OnWeaponEndOverlapTarget (AActor* EndOverlapActor) ;
 protected:
+	virtual void ToggleCurrentWeaponCollision(bool bEnableCollision,EToggleDamageType ToggleDamageType=EToggleDamageType::CurrentEquippedWeapon);
+	
+	virtual void ToggleCurrentHandCollision(bool bEnableCollision,EToggleDamageType ToggleDamageType=EToggleDamageType::CurrentEquippedWeapon);
+	
 	TArray<AActor*> OverlapActors;
 	
 	

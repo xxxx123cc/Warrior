@@ -3,6 +3,9 @@
 
 #include "Characters/WarriorEnemyCharacter.h"
 
+#include "AbilitySystemBlueprintLibrary.h"
+#include "WarriorFunctionLibrary.h"
+#include "WarriorGameplayTags.h"
 #include "components/CapsuleComponent.h"
 #include "Components/Combat/EnemyCombatComponent.h"
 #include "DataAssets/StartUpData/DataAsset_StartUpDataBase.h"
@@ -11,7 +14,8 @@
 #include "Components/UI/EnemyUIComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Widgets/WarriorWidgetBase.h"
-#include "Warrior/Public/DataAssets/StartUpData/DataAsset_EnemyStartUpData.h"
+#include "Components/BoxComponent.h"
+#include "Misc/MapErrors.h"
 
 AWarriorEnemyCharacter::AWarriorEnemyCharacter()
 {
@@ -31,6 +35,19 @@ AWarriorEnemyCharacter::AWarriorEnemyCharacter()
 	EnemyCombatComponent= CreateDefaultSubobject<UEnemyCombatComponent>("UEnemyCombatComponent");
 	
 	EnemyUIComponent= CreateDefaultSubobject<UEnemyUIComponent>("UEnemyUIComponent");
+	
+	LeftBoxComponent= CreateDefaultSubobject<UBoxComponent>("LeftBoxComponent");
+	LeftBoxComponent->SetupAttachment(GetMesh());
+	RightBoxComponent= CreateDefaultSubobject<UBoxComponent>("RightBoxComponent");
+	RightBoxComponent->SetupAttachment(GetMesh());
+	
+	LeftBoxComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	LeftBoxComponent->OnComponentBeginOverlap.AddDynamic(this,&ThisClass::OnBodyCollisionBoxBeginOverlap);
+	LeftBoxComponent->OnComponentEndOverlap.AddDynamic(this,&ThisClass::OnBodyCollisionBoxEndOverlap);
+	RightBoxComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	RightBoxComponent->OnComponentBeginOverlap.AddDynamic(this,&ThisClass::OnBodyCollisionBoxBeginOverlap);
+	RightBoxComponent->OnComponentEndOverlap.AddDynamic(this,&ThisClass::OnBodyCollisionBoxEndOverlap);
+	
 	
 	EnemyHealthBarWidget= CreateDefaultSubobject<UWidgetComponent>("EnemyHealthBarWidget");
 	EnemyHealthBarWidget->SetupAttachment(GetMesh());
@@ -52,6 +69,25 @@ UEnemyUIComponent* AWarriorEnemyCharacter::GetEnemyUIComponent() const
 
 	return EnemyUIComponent;
 }
+#if WITH_EDITOR
+void AWarriorEnemyCharacter::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+	
+	if (PropertyChangedEvent.GetMemberPropertyName()==GET_MEMBER_NAME_CHECKED(ThisClass,LeftHandCollisionBoxBoneName))
+	{
+		LeftBoxComponent->AttachToComponent(GetMesh(),FAttachmentTransformRules::SnapToTargetNotIncludingScale,LeftHandCollisionBoxBoneName);
+	}
+	
+	
+	if (PropertyChangedEvent.GetMemberPropertyName()==GET_MEMBER_NAME_CHECKED(ThisClass,RightHandCollisionBoxBoneName))
+	{
+		RightBoxComponent->AttachToComponent(GetMesh(),FAttachmentTransformRules::SnapToTargetNotIncludingScale,RightHandCollisionBoxBoneName);
+	}
+	
+	
+}
+#endif
 
 void AWarriorEnemyCharacter::PossessedBy(AController* NewController)
 { 
@@ -69,6 +105,31 @@ void AWarriorEnemyCharacter::BeginPlay()
 			EnemyHealthWidget->InitEnemyWidget(this);
 		}
 	}
+}
+
+void AWarriorEnemyCharacter::OnBodyCollisionBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent,
+	AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
+	const FHitResult& SweepResult)
+{
+	check(OtherActor);
+	APawn* Target = Cast<APawn>(OtherActor);
+	
+	if (Target)
+	{
+		if (UWarriorFunctionLibrary::IsTargetPawnHostile(this,Target))
+		{
+		EnemyCombatComponent->OnHitTargetActor(Target);
+		}
+	}
+	
+	
+}
+
+void AWarriorEnemyCharacter::OnBodyCollisionBoxEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	
+	
 }
 
 void AWarriorEnemyCharacter::InitEnemyStartUpData()

@@ -18,4 +18,6 @@ public:
 	
 	virtual void OnWeaponEndOverlapTarget (AActor* EndOverlapActor) override;
 	
+	virtual void ToggleCurrentHandCollision(bool bEnableCollision,EToggleDamageType ToggleDamageType=EToggleDamageType::CurrentEquippedWeapon) override;
+	
 };

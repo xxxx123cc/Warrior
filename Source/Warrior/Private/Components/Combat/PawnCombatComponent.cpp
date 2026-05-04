@@ -49,30 +49,13 @@ void UPawnCombatComponent::ToggleWeaponCollision(bool bEnableCollision, EToggleD
 {
 	if (ToggleDamageType==EToggleDamageType::CurrentEquippedWeapon)
 	{
-	if(AWarriorWeaponBase* CurrentWeapon=GetCurrentEquippedWeapon())
-	{
-		UBoxComponent* WeaponCollisionBox = CurrentWeapon->GetWeaponCollisionMesh();
-		if (!WeaponCollisionBox)
-		{
-			return;
-		}
-
-		if (bEnableCollision)
-		{
-			OverlapActors.Empty();
-			WeaponCollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-			WeaponCollisionBox->UpdateOverlaps();
-		}
-		else
-		{
-			WeaponCollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			OverlapActors.Empty();
-			
-		
-		}
-	}	
-		
+		ToggleCurrentWeaponCollision(bEnableCollision,ToggleDamageType);
 	}
+	else if (ToggleDamageType==EToggleDamageType::RightHand||ToggleDamageType==EToggleDamageType::LeftHand)
+	{
+		ToggleCurrentHandCollision(bEnableCollision,ToggleDamageType);
+	}
+	return;
 	
 }
 
@@ -88,5 +71,42 @@ void UPawnCombatComponent::OnWeaponEndOverlapTarget(AActor* EndOverlapActor)
 	{
 		OverlapActors.RemoveSingleSwap(EndOverlapActor);
 	}
+	
+}
+
+void UPawnCombatComponent::ToggleCurrentWeaponCollision(bool bEnableCollision, EToggleDamageType ToggleDamageType)
+{
+	if (ToggleDamageType==EToggleDamageType::CurrentEquippedWeapon)
+	{
+		if(AWarriorWeaponBase* CurrentWeapon=GetCurrentEquippedWeapon())
+		{
+			UBoxComponent* WeaponCollisionBox = CurrentWeapon->GetWeaponCollisionMesh();
+			if (!WeaponCollisionBox)
+			{
+				return;
+			}
+
+			if (bEnableCollision)
+			{
+				OverlapActors.Empty();
+				WeaponCollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+				WeaponCollisionBox->UpdateOverlaps();
+			}
+			else
+			{
+				WeaponCollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+				OverlapActors.Empty();
+			
+		
+			}
+		}	
+		
+	}
+	
+	
+}
+
+void UPawnCombatComponent::ToggleCurrentHandCollision(bool bEnableCollision, EToggleDamageType ToggleDamageType)
+{
 	
 }

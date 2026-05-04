@@ -48,6 +48,8 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_SetByCaller_AttackType_Heavy,"Player.SetByCaller.AttackType.Heavy");
 	/**敌人标签**/
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Weapon,"Enemy.Weapon");
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Event_SpawnEnemies,"Enemy.Event.SpawnEnemies");
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_SpawnEnemies,"Enemy.Ability.SpawnEnemies");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Ranged,"Enemy.Ability.Ranged");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Melee,"Enemy.Ability.Melee");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_Strafing,"Enemy.Status.Strafing");
