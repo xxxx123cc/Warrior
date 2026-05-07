@@ -21,32 +21,33 @@ void UWarriorAbilitySystemComponent::OnAbilityInputPressed(const FGameplayTag& I
 			continue;
 		}
 
-		if (InputTag.MatchesTag(WarriorGameplayTags::InputTag_Toggleable_TargetLock))
-		{
-			if (AbilitySpec.IsActive())
-			{
-				
-				CancelAbilityHandle(AbilitySpec.Handle);
-				return;
-			}
+		const bool bIsTargetLockInput =
+			InputTag.MatchesTag(WarriorGameplayTags::InputTag_Toggleable);
 
-			
-			TryActivateAbility(AbilitySpec.Handle);
+		const bool bIsAbilityActive = AbilitySpec.IsActive();
+
+		// 目标锁定：如果已经激活，再按一次就取消
+		if (bIsTargetLockInput && bIsAbilityActive)
+		{
+			CancelAbilityHandle(AbilitySpec.Handle);
 			return;
 		}
 
-		if (AbilitySpec.IsActive())
+		// Ability 已经激活：处理连招输入
+		if (bIsAbilityActive)
 		{
-			if (UWarriorGameplayAbility* WarriorAbility = Cast<UWarriorGameplayAbility>(AbilitySpec.GetPrimaryInstance()))
+			if (UWarriorGameplayAbility* WarriorAbility =
+				Cast<UWarriorGameplayAbility>(AbilitySpec.GetPrimaryInstance()))
 			{
 				WarriorAbility->OnComboInputPressed();
 			}
+
+			return;
 		}
-		else
-		{
-			
-			TryActivateAbility(AbilitySpec.Handle);
-		}
+
+		// Ability 没激活：尝试激活
+		TryActivateAbility(AbilitySpec.Handle);
+		return;
 	}
 }
 
@@ -67,7 +68,7 @@ void UWarriorAbilitySystemComponent::OnAbilityInputReleased(const FGameplayTag& 
 }
 
 void UWarriorAbilitySystemComponent::GrantHeroWeaponAbilities(
-	const TArray<FWarriorHeroAbilitySets>& InDefaultWeaponAbilities, int32 ApplyLevel,
+	const TArray<FWarriorHeroAbilitySets>& InDefaultWeaponAbilities,const TArray<FWarriorHeroSpecialAbilitySets>InSpecialAbilities, int32 ApplyLevel,
 	TArray<FGameplayAbilitySpecHandle>& OutGrantedAbilitySpecHandles)
 {
 	if (InDefaultWeaponAbilities.IsEmpty())
@@ -88,6 +89,29 @@ void UWarriorAbilitySystemComponent::GrantHeroWeaponAbilities(
 		AbilitySpec.GetDynamicSpecSourceTags().AddTag(AbilitySet.InputTag);
 		OutGrantedAbilitySpecHandles.AddUnique(GiveAbility(AbilitySpec));
 	}
+	if (InSpecialAbilities.IsEmpty())
+	{	
+		return;
+	}
+	for (const FWarriorHeroSpecialAbilitySets& AbilitySet :InSpecialAbilities)
+	{
+		if (!AbilitySet.IsValid())
+		{
+			continue;
+		}
+
+		FGameplayAbilitySpec AbilitySpec(AbilitySet.AbilityToGrant);
+		AbilitySpec.SourceObject = GetAvatarActor();
+		AbilitySpec.Level = ApplyLevel;
+		AbilitySpec.GetDynamicSpecSourceTags().AddTag(AbilitySet.InputTag);
+		OutGrantedAbilitySpecHandles.AddUnique(GiveAbility(AbilitySpec));
+	}
+	
+	
+	
+	
+	
+	
 }
 
 void UWarriorAbilitySystemComponent::RemoveGrantedHeroAbilities(

@@ -81,7 +81,10 @@ public:
 	static bool IsValidBlock(AActor* InAttacker, AActor* InDefender);
 
 	UFUNCTION(BlueprintCallable,Category="Warrior|FunctionLibrary")
-	static bool ApplyGameplayEfectHandleToTarget(AActor* Instigator,AActor* TargetActor,const FGameplayEffectSpecHandle&InSpecHandle);
+	static bool ApplyGameplayEffectHandleToTarget(AActor* Instigator,AActor* TargetActor,const FGameplayEffectSpecHandle&InSpecHandle);
 
+	UFUNCTION(BlueprintCallable,Category="Warrior|FunctionLibrary",meta = (Latent,WorldContext = "WorldContextObject", LatentInfo = "LatentInfo",ExpandEnumAsExecs = "CountDownOutput|CountDownInput",Duration = "1.0",UpdateInterval = "0.1"))
+	static  void CountDown(const UObject* WorldContextObject, float Duration, float UpdateInterval,float& OutRemainingTime,
+		EWarriorCountDownInput CountDownInput,UPARAM(DisplayName = "Output") EWarriorCountDownOutput& CountDownOutput,FLatentActionInfo LatentInfo);
 
 };

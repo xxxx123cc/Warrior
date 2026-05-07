@@ -56,6 +56,8 @@ protected:
 	UFUNCTION(BlueprintCallable,Category="Ability|ApplyEffect",meta = (DisplayName="ApplyEffectSpecHandleToTarget", ExpandEnumAsExecs = "OutSuccess"))
 	FActiveGameplayEffectHandle BP_ApplyEffectSpecHandleToTarget(AActor* TargetActor,const FGameplayEffectSpecHandle& InEffectSpecHandle,EWarriorSuccessful& OutSuccess );
 	
+	
+	
 public:
 	// 连击预输入缓存：当窗口未开启时先记下输入，窗口开启后再消费。
 	UPROPERTY(BlueprintReadWrite, Category = "Warrior|Ability")

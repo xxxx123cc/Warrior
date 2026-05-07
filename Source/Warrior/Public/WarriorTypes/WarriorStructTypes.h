@@ -34,6 +34,18 @@ struct FWarriorHeroAbilitySets
 	bool IsValid() const;
 };
 
+USTRUCT(Blueprintable)
+struct FWarriorHeroSpecialAbilitySets: public FWarriorHeroAbilitySets
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly)
+	TSoftObjectPtr<UMaterialInterface> SoftAbilityIconMaterial;
+	
+	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,meta=(Categories = "Player.CoolDown"))
+	FGameplayTag AbilityCooldownTag;
+	
+};
 
 
 USTRUCT(BlueprintType)
@@ -49,6 +61,9 @@ struct FWarriorHeroWeaponData
 	//武器的能力
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,meta=(TitleProperty = "InpuTag"))
 	TArray<FWarriorHeroAbilitySets> DefaultWeaponAbilities;
+	
+	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,meta=(TitleProperty = "InpuTag"))
+	TArray<FWarriorHeroSpecialAbilitySets> SpecialWeaponSpecialAbilities;
 	//基础伤害，后续可以根据武器类型、英雄属性等进行调整
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category="WeaponData")
 	TSoftObjectPtr< UTexture2D> SoftWeaponIconTexture;

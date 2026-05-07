@@ -58,6 +58,6 @@ protected:
 private:
 	void HandleApplyProjectileEffect(APawn* InHitPawn,const FGameplayEventData& Data);
 	
-	
+	TArray<AActor*> OverlapActors;
 
 };

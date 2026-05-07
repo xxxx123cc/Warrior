@@ -92,6 +92,26 @@ void AWarriorProjectileBase::OnProjectileOverlap(UPrimitiveComponent* Overlapped
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	
+	if (OverlapActors.Contains(OtherActor))
+	{
+		return;
+	}
+	OverlapActors.AddUnique(OtherActor);
+	
+	if (APawn*HitPawn = Cast<APawn>(OtherActor))
+	{
+		FGameplayEventData Data;
+		Data.Instigator =GetInstigator();
+		Data.Target = HitPawn;
+		//是否是敌人
+		if (UWarriorFunctionLibrary::IsTargetPawnHostile(GetInstigator(),HitPawn))
+		{
+			HandleApplyProjectileEffect(HitPawn,Data);
+			
+		}
+		
+	}
+	
 	
 }
 
@@ -99,7 +119,7 @@ void AWarriorProjectileBase::HandleApplyProjectileEffect(APawn* InHitPawn,const 
 {
 	checkf(ProjectileDamageHandle.IsValid(),TEXT("Forget Assign valid spec handle to projectile"));
 	
-	const bool bWasApplied =  UWarriorFunctionLibrary::ApplyGameplayEfectHandleToTarget(GetInstigator(),InHitPawn,ProjectileDamageHandle);
+	const bool bWasApplied =  UWarriorFunctionLibrary::ApplyGameplayEffectHandleToTarget(GetInstigator(),InHitPawn,ProjectileDamageHandle);
 	
 	if (bWasApplied)
 	{

@@ -45,6 +45,21 @@ void UWarriorAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffec
 		const float NewCurrentRage = FMath::Clamp(GetCurrentRage(), 0.f, GetMaxRage());
 		
 		SetCurrentRage(NewCurrentRage);
+		
+		if (GetCurrentRage()==GetMaxRage())
+		{
+			UWarriorFunctionLibrary::AddGamePlayTagToActorIfNone(Data.Target.GetAvatarActor(),WarriorGameplayTags::Player_Status_Rage_Full);
+		}
+		else if (GetCurrentRage()<=0.f)
+		{
+			UWarriorFunctionLibrary::AddGamePlayTagToActorIfNone(Data.Target.GetAvatarActor(),WarriorGameplayTags::Player_Status_Rage_None);
+		}
+		else
+		{
+			UWarriorFunctionLibrary::RemoveGamePlayTagFromActorIfAny(Data.Target.GetAvatarActor(),WarriorGameplayTags::Player_Status_Rage_Full);
+			UWarriorFunctionLibrary::RemoveGamePlayTagFromActorIfAny(Data.Target.GetAvatarActor(),WarriorGameplayTags::Player_Status_Rage_None);
+		}
+		
 		//如果是玩家的话,更新怒气值UI
 		if ( UHeroUIComponent* HeroUIComponent=CachedPawnUIInterface->GetHeroUIComponent())
 		{

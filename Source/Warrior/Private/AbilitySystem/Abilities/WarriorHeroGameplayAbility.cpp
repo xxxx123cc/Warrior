@@ -61,3 +61,22 @@ FGameplayEffectSpecHandle UWarriorHeroGameplayAbility::HeroDamageEffectHandle(TS
 	// 4) 返回 Spec 供外部应用到目标（ApplyGameplayEffectSpecToTarget/Actor 等）。
 	return EffectSpecHandle;
 }
+
+bool UWarriorHeroGameplayAbility::GetAbilityRemainingCooldownByTag(FGameplayTag CooldownTag, float& TimeRemaining,
+	float& TotalCooldownTime)
+{
+	check(CooldownTag.IsValid());
+	
+	FGameplayEffectQuery EffectQuery = FGameplayEffectQuery::MakeQuery_MatchAllOwningTags(CooldownTag.GetSingleTagContainer());
+	TArray<TPair<float,float>>TimeRemainingAndDuration= GetAbilitySystemComponentFromActorInfo()->GetActiveEffectsTimeRemainingAndDuration(EffectQuery);
+	
+	if (!TimeRemainingAndDuration.IsEmpty())
+	{
+		TotalCooldownTime = TimeRemainingAndDuration[0].Value;
+		TimeRemaining = TimeRemainingAndDuration[0].Key;
+		
+	}
+	
+	return TimeRemaining > 0.0f;
+	
+}

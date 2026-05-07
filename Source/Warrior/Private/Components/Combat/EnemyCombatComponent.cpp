@@ -11,7 +11,7 @@
 #include "Components/BoxComponent.h"
 
 void UEnemyCombatComponent::OnHitTargetActor(AActor* HitActor)
-{Debug::print(TEXT("EnemyCombatComponent::OnHitTargetActor"));
+{
 	//敌人攻击玩家时，发送一个事件给玩家，玩家接到事件后播放受击动画
 	if (OverlapActors.Contains(HitActor))
 	{	

@@ -14,6 +14,7 @@
 #include "Components/Combat/PawnCombatComponent.h"
 #include "Items/Weapons/WarriorWeaponBase.h"
 #include "WarriorGameplayTags.h"
+#include "WarriorTypes/WarriorCountDownAction.h"
 /**
  * @brief 从Actor获取WarriorAbilitySystemComponent
  * @param InActor 目标Actor
@@ -233,7 +234,7 @@ bool UWarriorFunctionLibrary::IsValidBlock(AActor* InAttacker, AActor* InDefende
 	return DotResult >= 0.6;
 }
 
-bool UWarriorFunctionLibrary::ApplyGameplayEfectHandleToTarget(AActor* Instigator, AActor* TargetActor,
+bool UWarriorFunctionLibrary::ApplyGameplayEffectHandleToTarget(AActor* Instigator, AActor* TargetActor,
 	const FGameplayEffectSpecHandle& InSpecHandle)
 {
 	UWarriorAbilitySystemComponent* SourceASC= NativeGetWarriorAscFromActor(Instigator);
@@ -242,5 +243,46 @@ bool UWarriorFunctionLibrary::ApplyGameplayEfectHandleToTarget(AActor* Instigato
 	return ActivateGameplayEffectHandle.WasSuccessfullyApplied();
 	
 	
+}
+
+void UWarriorFunctionLibrary::CountDown(const UObject* WorldContextObject, float Duration, float UpdateInterval,
+	float& OutRemainingTime, EWarriorCountDownInput CountDownInput,UPARAM(DisplayName = "Output") EWarriorCountDownOutput& CountDownOutput,
+	FLatentActionInfo LatentInfo)
+{
+	UWorld* World = nullptr;
+	
+	if (GEngine)
+	{
+		World =GEngine->GetWorldFromContextObject(WorldContextObject,EGetWorldErrorMode::LogAndReturnNull);
+		
+	}
+	
+	if (!World)
+	{
+	return;
+	}
+	
+	FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
+	
+	FWarriorCountDownAction* FoundAction = LatentActionManager.FindExistingAction<FWarriorCountDownAction>(LatentInfo.CallbackTarget,LatentInfo.UUID);	
+	
+	if (CountDownInput == EWarriorCountDownInput::Start)
+	{
+		if (!FoundAction)
+		{
+			LatentActionManager.AddNewAction(LatentInfo.CallbackTarget,
+				LatentInfo.UUID, 
+				new FWarriorCountDownAction(Duration, UpdateInterval, OutRemainingTime, CountDownOutput,LatentInfo));
+		}
+	}
+	else if (CountDownInput == EWarriorCountDownInput::Cancel)
+	{
+		if (FoundAction)
+		{
+			FoundAction->CancelAction();
+			
+		}
+		
+	}
 	
 }

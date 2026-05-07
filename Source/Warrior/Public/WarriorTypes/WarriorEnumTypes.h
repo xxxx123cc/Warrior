@@ -29,3 +29,17 @@ class WarriorEnumTypes
 public:
 	
 };
+
+UENUM()
+enum class EWarriorCountDownInput:uint8
+{
+	Start,
+	Cancel
+};
+UENUM()
+enum class EWarriorCountDownOutput:uint8
+{
+	Updated,
+	Completed,
+	Cancelled
+};
