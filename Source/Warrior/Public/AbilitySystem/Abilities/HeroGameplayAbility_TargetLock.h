@@ -36,7 +36,7 @@ public:
 
 private:
 	// 目标获取与目标切换。
-	void TryLockOnTarget();
+	bool TryLockOnTarget();
 	void GetAvailableActorsToLock();
 	AActor* GetNearestTargetFromAvailableActors(const TArray<AActor*>& ActorsToLock);
 	void GetAvailableActorsAroundTarget(TArray<AActor*>& OutActorsOnLeft, TArray<AActor*>& OutActorsOnRight);
@@ -103,4 +103,7 @@ private:
 
 	UPROPERTY()
 	bool bCachedUseControllerDesiredRotation = false;
+
+	UPROPERTY()
+	bool bHasCachedTargetLockMovement = false;
 };

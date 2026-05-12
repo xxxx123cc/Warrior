@@ -27,7 +27,11 @@ void UHeroGameplayAbility_TargetLock::ActivateAbility(
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
 	// 技能启动时立即尝试锁定一个目标，并切换到锁定模式的移动与输入配置。
-	TryLockOnTarget();
+	if (!TryLockOnTarget())
+	{
+		return;
+	}
+
 	InitTargetLockMovement();
 	InitTargetLockMappingContext();
 }
@@ -116,7 +120,7 @@ void UHeroGameplayAbility_TargetLock::SwitchTarget(const FGameplayTag& InSwitchD
 	}
 }
 
-void UHeroGameplayAbility_TargetLock::TryLockOnTarget()
+bool UHeroGameplayAbility_TargetLock::TryLockOnTarget()
 {
 	// 初次锁定时扫描前方盒体范围内的可锁定 Actor。
 	GetAvailableActorsToLock();
@@ -124,7 +128,7 @@ void UHeroGameplayAbility_TargetLock::TryLockOnTarget()
 	if (AvailableActorsToLock.IsEmpty())
 	{
 		CancelLockOnTarget();
-		return;
+		return false;
 	}
 
 	// 默认锁定距离玩家最近的候选目标。
@@ -132,11 +136,12 @@ void UHeroGameplayAbility_TargetLock::TryLockOnTarget()
 	if (!CurrentLockedOnTarget)
 	{
 		CancelLockOnTarget();
-		return;
+		return false;
 	}
 
 	DrawTargetLockWidget();
 	SetTargetLockWidgetPosition();
+	return true;
 }
 
 void UHeroGameplayAbility_TargetLock::GetAvailableActorsToLock()
@@ -282,6 +287,7 @@ void UHeroGameplayAbility_TargetLock::InitTargetLockMovement()
 	CachedMaxWalkSpeed = CharacterMovement->MaxWalkSpeed;
 	bCachedOrientRotationToMovement = CharacterMovement->bOrientRotationToMovement;
 	bCachedUseControllerDesiredRotation = CharacterMovement->bUseControllerDesiredRotation;
+	bHasCachedTargetLockMovement = true;
 
 	RefreshTargetLockMovementState();
 }
@@ -321,9 +327,15 @@ void UHeroGameplayAbility_TargetLock::ClearLockOnTarget()
 
 void UHeroGameplayAbility_TargetLock::ResetTargetLockMovement()
 {
+	if (!bHasCachedTargetLockMovement)
+	{
+		return;
+	}
+
 	UCharacterMovementComponent* CharacterMovement = GetHeroCharacterFromActorInfo()->GetCharacterMovement();
 	if (!CharacterMovement)
 	{
+		bHasCachedTargetLockMovement = false;
 		return;
 	}
 
@@ -331,6 +343,7 @@ void UHeroGameplayAbility_TargetLock::ResetTargetLockMovement()
 	CharacterMovement->MaxWalkSpeed = CachedMaxWalkSpeed;
 	CharacterMovement->bOrientRotationToMovement = bCachedOrientRotationToMovement;
 	CharacterMovement->bUseControllerDesiredRotation = bCachedUseControllerDesiredRotation;
+	bHasCachedTargetLockMovement = false;
 }
 
 void UHeroGameplayAbility_TargetLock::ResetTargetLockMappingContext()
