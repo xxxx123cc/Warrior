@@ -34,3 +34,4 @@ void UWarriorWidgetBase::InitEnemyWidget(AActor* EnemyActor)
 	}
 	
 }
+
