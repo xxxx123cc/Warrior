@@ -84,10 +84,18 @@ void UAbilityTask_SpawnEnemies::OnEnemyLoaded()
 			SpawnLocation+=FVector(0.0f,0.0f,150.0f);
 			// 使用技能拥有者当前朝向作为敌人的初始朝向。
 			FRotator Rotator =AbilitySystemComponent->GetAvatarActor()->GetActorForwardVector().ToOrientationRotator();
-			AWarriorEnemyCharacter* EnemyCharacter = World->SpawnActor<AWarriorEnemyCharacter>(EnemyClass, SpawnLocation, Rotator, SpawnParams);
+			const FTransform SpawnTransform(Rotator, SpawnLocation);
+			AWarriorEnemyCharacter* EnemyCharacter = World->SpawnActorDeferred<AWarriorEnemyCharacter>(
+				EnemyClass,
+				SpawnTransform,
+				nullptr,
+				nullptr,
+				SpawnParams.SpawnCollisionHandlingOverride);
 			
 			if (EnemyCharacter)
 			{
+				EnemyCharacter->SetActorHiddenInGame(true);
+				EnemyCharacter->FinishSpawning(SpawnTransform);
 				SpawnedEnemy.Add(EnemyCharacter);
 			}
 		}
