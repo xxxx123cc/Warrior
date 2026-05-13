@@ -15,10 +15,13 @@
 #include "Components/WidgetComponent.h"
 #include "Widgets/WarriorWidgetBase.h"
 #include "Components/BoxComponent.h"
+#include "GameModes/WarriorBaseGameMode.h"
 #include "Misc/MapErrors.h"
 
 AWarriorEnemyCharacter::AWarriorEnemyCharacter()
 {
+	SetActorHiddenInGame(true);
+
 	//ai
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	
@@ -136,13 +139,42 @@ void AWarriorEnemyCharacter::InitEnemyStartUpData()
 {
 	if (CharacterStartUpData.IsNull())
 	{
+		SetActorHiddenInGame(false);
 		return;
 	}
-	UAssetManager::GetStreamableManager().RequestAsyncLoad(CharacterStartUpData.ToSoftObjectPath(), FStreamableDelegate::CreateLambda([this]()
+	int32 AbilityApplyLevel = 1;
+	if (AWarriorBaseGameMode* BaseGameMode = GetWorld()->GetAuthGameMode<AWarriorBaseGameMode>())
+	{
+		switch (BaseGameMode->GetGameDifficulty())
+		{
+		case WarriorDifficulty::Easy:
+			AbilityApplyLevel = 1;
+			break;
+		case WarriorDifficulty::Normal:
+			AbilityApplyLevel = 2;
+			break;
+		case WarriorDifficulty::Medium:
+			AbilityApplyLevel = 3;
+			break;	
+		case WarriorDifficulty::Hard:
+			AbilityApplyLevel = 4;
+		default:
+			break;
+				
+		};
+			
+			
+	}
+	UAssetManager::GetStreamableManager().RequestAsyncLoad(CharacterStartUpData.ToSoftObjectPath(), FStreamableDelegate::CreateLambda([this,AbilityApplyLevel]()
 	{
 		if (UDataAsset_StartUpDataBase*LoadedData = CharacterStartUpData.Get())
 		{
-			LoadedData->GivenToAbilitySystemComponent(WarriorAbilitySystemComponent);
+			LoadedData->GivenToAbilitySystemComponent(WarriorAbilitySystemComponent,AbilityApplyLevel);
+			SetActorHiddenInGame(false);
+		}
+		else
+		{
+			SetActorHiddenInGame(false);
 		}
 	}));
 
