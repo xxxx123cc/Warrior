@@ -6,6 +6,8 @@
 #include "Components/Combat/PawnCombatComponent.h"
 #include "WarriorDebugHelper.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "WarriorFunctionLibrary.h"
+#include "WarriorGameplayTags.h"
 
 // OnGiven 策略下，能力一旦授予即自动激活（常用于被动/初始化能力）。
 void UWarriorGameplayAbility::OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo,
@@ -81,6 +83,38 @@ FActiveGameplayEffectHandle UWarriorGameplayAbility::BP_ApplyEffectSpecHandleToT
 	FActiveGameplayEffectHandle EffectHandle= NativeApplyEffectSpecHandleToTarget(TargetActor,InEffectSpecHandle);
 	OutSuccess= EffectHandle.WasSuccessfullyApplied()?EWarriorSuccessful::Successful:EWarriorSuccessful::Failed;
 	return  EffectHandle;
+}
+
+void UWarriorGameplayAbility::ApplyGameplayEffectSpecHandleToHitResults(
+	const FGameplayEffectSpecHandle& InEffectSpecHandle, const TArray<FHitResult>& HitResults)
+{
+	if (HitResults.IsEmpty()||!InEffectSpecHandle.IsValid())
+	{
+		return;
+	}
+	APawn*OwningPawn = Cast<APawn>(GetAvatarActorFromActorInfo());
+	for (const FHitResult& HitResult : HitResults)
+	{
+		if (APawn *TargetPawn = Cast<APawn>(HitResult.GetActor()))
+		{
+			if (UWarriorFunctionLibrary::IsTargetPawnHostile(OwningPawn,TargetPawn))
+			{
+				FActiveGameplayEffectHandle ActiveGameplayEffectHandle =NativeApplyEffectSpecHandleToTarget(TargetPawn,InEffectSpecHandle);
+				if (ActiveGameplayEffectHandle.WasSuccessfullyApplied())
+				{
+					FGameplayEventData EventData;
+					EventData.Instigator = OwningPawn;
+					EventData.Target = TargetPawn;
+					
+					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetPawn, WarriorGameplayTags::Shared_Ability_HitReact, EventData);
+					
+				}
+			}
+		}
+		
+	}
+	
+	
 }
 
 // 标记连击输入已到达，供连击窗口逻辑在稍后消费。
