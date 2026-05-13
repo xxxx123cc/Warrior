@@ -13,7 +13,7 @@ public class Warrior : ModuleRules
 			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayTags", "GameplayTasks","GameplayAbilities","AIModule","AnimGraphRuntime","MotionWarping","Niagara","NavigationSystem"
 		});//添加必要的模块
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+		PrivateDependencyModuleNames.AddRange(new string[] { "MoviePlayer" });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
