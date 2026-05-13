@@ -4,7 +4,6 @@
 #include "GameModes/WarriorSurvailGameMode.h"
 #include "Engine/AssetManager.h"
 #include "Warrior/Public/Characters/WarriorEnemyCharacter.h"
-#include "Warrior/Public/WarriorDebugHelper.h"
 #include  "Kismet/GameplayStatics.h"
 #include "Engine/TargetPoint.h"
 #include "NavigationSystem.h"
@@ -102,7 +101,6 @@ void AWarriorSurvailGameMode::PreLoadNextWaveEnemies()
 {
 	if (CurrentWaveIndex > TotalWavesToSpawn)
 	{
-		Debug::print(TEXT("All waves have been completed. No more enemies to preload."), FColor::Yellow);
 		return;
 	}
 	LoadedEnemyClassMap.Empty();
