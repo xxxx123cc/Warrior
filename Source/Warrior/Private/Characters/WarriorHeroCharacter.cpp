@@ -19,6 +19,8 @@
 #include "Components/Combat/HeroCombatComponent.h"
 #include "Components/UI/HeroUIComponent.h"
 #include "WarriorFunctionLibrary.h"
+#include "GameModes/WarriorBaseGameMode.h"
+
 AWarriorHeroCharacter::AWarriorHeroCharacter()
 {
 	GetCapsuleComponent()->InitCapsuleSize(42.f,96.f);
@@ -70,7 +72,31 @@ void AWarriorHeroCharacter::PossessedBy(AController* NewController)
 	if (!CharacterStartUpData.IsNull())
 	{
 	if (UDataAsset_StartUpDataBase* LoadedData = CharacterStartUpData.LoadSynchronous())
-	{LoadedData->GivenToAbilitySystemComponent(WarriorAbilitySystemComponent,1);
+	{
+		int32 AbilityApplyLevel = 1;
+		if (AWarriorBaseGameMode* BaseGameMode = GetWorld()->GetAuthGameMode<AWarriorBaseGameMode>())
+		{
+			switch (BaseGameMode->GetGameDifficulty())
+			{
+				case WarriorDifficulty::Easy:
+					AbilityApplyLevel = 4;
+					break;
+				case WarriorDifficulty::Normal:
+					AbilityApplyLevel = 3;
+					break;
+				case WarriorDifficulty::Medium:
+					AbilityApplyLevel = 2;
+					break;	
+				case WarriorDifficulty::Hard:
+				    AbilityApplyLevel = 1;
+				default:
+					break;
+				
+			};
+			
+			
+		}
+		LoadedData->GivenToAbilitySystemComponent(WarriorAbilitySystemComponent,AbilityApplyLevel);
 		
 	}
 	}
@@ -112,7 +138,11 @@ void AWarriorHeroCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 	
 	WarriorInputComponent->BindNativeInputAction(InputConfigDataAsset,WarriorGameplayTags::InputTag_SwitchTarget,ETriggerEvent::Completed,this,&ThisClass::Input_SwitchTargetCompleted);
 	
+	WarriorInputComponent->BindNativeInputAction(InputConfigDataAsset,WarriorGameplayTags::InputTag_PickUp_Stones,ETriggerEvent::Started,this,&ThisClass::Input_PickUpStonesStarted);
+	
 	WarriorInputComponent->BindAbilityInputAction(InputConfigDataAsset,this,&ThisClass::Input_AbilityInputPressed,&ThisClass::Input_AbilityInputReleased);
+	
+	
 }
 
 void AWarriorHeroCharacter::Input_Move(const FInputActionValue& InputActionValue)
@@ -176,6 +206,15 @@ void AWarriorHeroCharacter::Input_SwitchTargetCompleted(const FInputActionValue&
 	SwitchDirection.X>0.f?WarriorGameplayTags::Player_Event_SwitchTarget_Right:WarriorGameplayTags::Player_Event_SwitchTarget_Left
 	,Data);
 	
+}
+
+void AWarriorHeroCharacter::Input_PickUpStonesStarted(const FInputActionValue& InputActionValue)
+{ 
+	FGameplayEventData Data;
+	
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this,
+	WarriorGameplayTags::Player_Event_ConsumeStones
+	,Data);
 }
 
 void AWarriorHeroCharacter::Input_AbilityInputPressed(FGameplayTag Input_Tag)

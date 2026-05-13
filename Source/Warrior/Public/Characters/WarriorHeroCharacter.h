@@ -63,6 +63,8 @@ private:
 	void Input_SwitchTargetTriggered(const FInputActionValue& InputActionValue);
 	void Input_SwitchTargetCompleted(const FInputActionValue& InputActionValue);
 	
+	void Input_PickUpStonesStarted(const FInputActionValue& InputActionValue);
+	
 	FVector2D SwitchDirection = FVector2D::ZeroVector;
 	
 	void Input_AbilityInputPressed(FGameplayTag Input_Tag);
