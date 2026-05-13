@@ -14,8 +14,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponTextureChangedDelegate, TSo
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityIconSlotUpdate, FGameplayTag,AbilityTag, TSoftObjectPtr<UMaterialInterface>, AbilityIconMetarial);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FonAbilityCooldownUpdate, FGameplayTag, AbilityCooldownTag, float, CooldownDuration, float, CooldownRemaining);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FonAbilityCooldownUpdate, FGameplayTag, AbilityInputTag, float, CooldownDuration, float, CooldownRemaining);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStoneInteractedDelegate, bool,bShouldShowInteraction);
 
 /**
  * 
@@ -38,4 +39,6 @@ public:
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category="UI")
 	FonAbilityCooldownUpdate OnAbilityCooldownUpdate;
 	
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category="UI")
+	FOnStoneInteractedDelegate OnStoneInteracted;
 };
