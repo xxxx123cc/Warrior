@@ -1,9 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "AbilitySystem/WarriorAbilitySystemComponent.h"
-#include "WarriorDebugHelper.h"
-#include "AbilitySystemComponent.h"
+
+#include "AbilitySystem/Abilities/WarriorGameplayAbility.h"
 #include "AbilitySystem/Abilities/WarriorHeroGameplayAbility.h"
 #include "WarriorGameplayTags.h"
 
@@ -21,23 +20,24 @@ void UWarriorAbilitySystemComponent::OnAbilityInputPressed(const FGameplayTag& I
 			continue;
 		}
 
-		const bool bIsTargetLockInput =
-			InputTag.MatchesTag(WarriorGameplayTags::InputTag_Toggleable);
-
+		const bool bIsToggleableInput = InputTag.MatchesTag(WarriorGameplayTags::InputTag_Toggleable);
+		const bool bIsRageInput = InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_Toggleable_Rage);
 		const bool bIsAbilityActive = AbilitySpec.IsActive();
 
-		// 目标锁定：如果已经激活，再按一次就取消
-		if (bIsTargetLockInput && bIsAbilityActive)
+		if (bIsToggleableInput && bIsAbilityActive)
 		{
+			if (bIsRageInput && HasMatchingGameplayTag(WarriorGameplayTags::Player_Status_Rage_Activating))
+			{
+				return;
+			}
+
 			CancelAbilityHandle(AbilitySpec.Handle);
 			return;
 		}
 
-		// Ability 已经激活：处理连招输入
 		if (bIsAbilityActive)
 		{
-			if (UWarriorGameplayAbility* WarriorAbility =
-				Cast<UWarriorGameplayAbility>(AbilitySpec.GetPrimaryInstance()))
+			if (UWarriorGameplayAbility* WarriorAbility = Cast<UWarriorGameplayAbility>(AbilitySpec.GetPrimaryInstance()))
 			{
 				WarriorAbility->OnComboInputPressed();
 			}
@@ -45,7 +45,6 @@ void UWarriorAbilitySystemComponent::OnAbilityInputPressed(const FGameplayTag& I
 			return;
 		}
 
-		// Ability 没激活：尝试激活
 		TryActivateAbility(AbilitySpec.Handle);
 		return;
 	}
@@ -68,7 +67,9 @@ void UWarriorAbilitySystemComponent::OnAbilityInputReleased(const FGameplayTag& 
 }
 
 void UWarriorAbilitySystemComponent::GrantHeroWeaponAbilities(
-	const TArray<FWarriorHeroAbilitySets>& InDefaultWeaponAbilities,const TArray<FWarriorHeroSpecialAbilitySets>InSpecialAbilities, int32 ApplyLevel,
+	const TArray<FWarriorHeroAbilitySets>& InDefaultWeaponAbilities,
+	const TArray<FWarriorHeroSpecialAbilitySets> InSpecialAbilities,
+	int32 ApplyLevel,
 	TArray<FGameplayAbilitySpecHandle>& OutGrantedAbilitySpecHandles)
 {
 	if (InDefaultWeaponAbilities.IsEmpty())
@@ -89,11 +90,13 @@ void UWarriorAbilitySystemComponent::GrantHeroWeaponAbilities(
 		AbilitySpec.GetDynamicSpecSourceTags().AddTag(AbilitySet.InputTag);
 		OutGrantedAbilitySpecHandles.AddUnique(GiveAbility(AbilitySpec));
 	}
+
 	if (InSpecialAbilities.IsEmpty())
-	{	
+	{
 		return;
 	}
-	for (const FWarriorHeroSpecialAbilitySets& AbilitySet :InSpecialAbilities)
+
+	for (const FWarriorHeroSpecialAbilitySets& AbilitySet : InSpecialAbilities)
 	{
 		if (!AbilitySet.IsValid())
 		{
@@ -106,16 +109,9 @@ void UWarriorAbilitySystemComponent::GrantHeroWeaponAbilities(
 		AbilitySpec.GetDynamicSpecSourceTags().AddTag(AbilitySet.InputTag);
 		OutGrantedAbilitySpecHandles.AddUnique(GiveAbility(AbilitySpec));
 	}
-	
-	
-	
-	
-	
-	
 }
 
-void UWarriorAbilitySystemComponent::RemoveGrantedHeroAbilities(
-	TArray<FGameplayAbilitySpecHandle>& InSpecHandlesToRemove)
+void UWarriorAbilitySystemComponent::RemoveGrantedHeroAbilities(TArray<FGameplayAbilitySpecHandle>& InSpecHandlesToRemove)
 {
 	if (InSpecHandlesToRemove.IsEmpty())
 	{
@@ -135,9 +131,7 @@ bool UWarriorAbilitySystemComponent::TryActivateAbilityByTag(FGameplayTag Abilit
 	check(AbilityTagToActivate.IsValid());
 
 	TArray<FGameplayAbilitySpec*> FoundAbilitySpecs;
-	GetActivatableGameplayAbilitySpecsByAllMatchingTags(
-		AbilityTagToActivate.GetSingleTagContainer(),
-		FoundAbilitySpecs);
+	GetActivatableGameplayAbilitySpecsByAllMatchingTags(AbilityTagToActivate.GetSingleTagContainer(), FoundAbilitySpecs);
 
 	if (!FoundAbilitySpecs.IsEmpty())
 	{
