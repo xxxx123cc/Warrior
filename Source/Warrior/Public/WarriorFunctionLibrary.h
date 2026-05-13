@@ -7,6 +7,8 @@
 #include "WarriorTypes/WarriorEnumTypes.h"
 #include "WarriorFunctionLibrary.generated.h"
 
+class UWarriorGameInstance;
+struct FScalableFloat;
 struct FGameplayTag;
 // 前向声明，避免循环依赖
 class UWarriorAbilitySystemComponent;
@@ -83,8 +85,23 @@ public:
 	UFUNCTION(BlueprintCallable,Category="Warrior|FunctionLibrary")
 	static bool ApplyGameplayEffectHandleToTarget(AActor* Instigator,AActor* TargetActor,const FGameplayEffectSpecHandle&InSpecHandle);
 
+	UFUNCTION(BlueprintPure, Category="Warrior|FunctionLibrary")
+	static float GetScalableFloatValueAtLevel(const FScalableFloat& InScalableFloat, float InLevel);
+	
+
 	UFUNCTION(BlueprintCallable,Category="Warrior|FunctionLibrary",meta = (Latent,WorldContext = "WorldContextObject", LatentInfo = "LatentInfo",ExpandEnumAsExecs = "CountDownOutput|CountDownInput",Duration = "1.0",UpdateInterval = "0.1"))
 	static  void CountDown(const UObject* WorldContextObject, float Duration, float UpdateInterval,float& OutRemainingTime,
 		EWarriorCountDownInput CountDownInput,UPARAM(DisplayName = "Output") EWarriorCountDownOutput& CountDownOutput,FLatentActionInfo LatentInfo);
 
+	UFUNCTION(BlueprintPure,Category="Warrior|FunctionLibrary",meta=(WorldContext="WorldContextObject"))
+	static UWarriorGameInstance* GetWarriorGameInstance(const UObject* WorldContextObject);
+	
+	UFUNCTION(BlueprintCallable,Category="Warrior|FunctionLibrary",meta = (WorldContext="WorldContextObject"))
+	static void ToggleInputMode(const UObject*WorldContextObject, EWarriorInputMode InInputMode);
+	
+	UFUNCTION(BlueprintCallable,Category="Warrior|FunctionLibrary")
+	static void SaveCurrentGameDifficulty(WarriorDifficulty InDifficulty);
+	
+	UFUNCTION(BlueprintCallable,Category="Warrior|FunctionLibrary")
+	static  bool TryLoadSaveGameDifficulty(WarriorDifficulty&OutSavedDifficulty);
 };
