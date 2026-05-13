@@ -21,10 +21,14 @@ AWarriorHeroWeapon* UHeroCombatComponent::GetHeroCurrentEquippedWeapon() const
 
 float UHeroCombatComponent::GetHeroCurrentEquipWeaponDamageAtLevel(float InLevel) const
 {
-	return GetHeroCurrentEquippedWeapon()->HeroWeaponData.WeaponBaseDamage.GetValueAtLevel(InLevel);
+	const FScalableFloat& WeaponBaseDamage = GetHeroCurrentEquippedWeapon()->HeroWeaponData.WeaponBaseDamage;
+	 if (!WeaponBaseDamage.IsValid())
+	 {
+		 return 0.f;
+	 }
+	return WeaponBaseDamage.GetValueAtLevel(InLevel);
 	
 }
-
 
 
 void UHeroCombatComponent::OnHitTargetActor(AActor* HitActor)
