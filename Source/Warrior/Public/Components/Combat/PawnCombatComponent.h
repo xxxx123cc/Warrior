@@ -38,6 +38,8 @@ public:
 	//通过武器标签获取当前武器-4.1
 	UFUNCTION(BlueprintCallable,Category="Warrior|Combat")
 	AWarriorWeaponBase* GetCurrentEquippedWeapon() const;
+
+	void CleanupAllWeapons();
 	//控制武器碰撞 
 	UFUNCTION(BlueprintCallable,Category="Weapon")
 	void ToggleWeaponCollision(bool bEnableCollision,EToggleDamageType ToggleDamageType=EToggleDamageType::CurrentEquippedWeapon);

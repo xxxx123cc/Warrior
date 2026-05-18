@@ -106,6 +106,18 @@ void UPawnCombatComponent::ToggleCurrentWeaponCollision(bool bEnableCollision, E
 	
 }
 
+void UPawnCombatComponent::CleanupAllWeapons()
+{
+	for (auto& Pair : CarriedWeaponsMap)
+	{
+		if (Pair.Value)
+		{
+			Pair.Value->Destroy();
+		}
+	}
+	CarriedWeaponsMap.Empty();
+}
+
 void UPawnCombatComponent::ToggleCurrentHandCollision(bool bEnableCollision, EToggleDamageType ToggleDamageType)
 {
 	
