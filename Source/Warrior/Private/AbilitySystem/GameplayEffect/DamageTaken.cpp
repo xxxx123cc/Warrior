@@ -37,7 +37,7 @@ UDamageTaken::UDamageTaken()
 	// RelevantAttributesToCapture.Add(AttackPowerCaptureDefinition);
 	
 	
-	//把捕获任务单加进去，GAS 在执行计算之前会提前把这些属性值都准备好，你在后面的 Execute_Implementation 函数里就能直接取出来用。
+	//把捕获任务单加进去，GAS 在执行计算之前会提前把这些属性值都准备好，在后面的 Execute_Implementation 函数里就能直接取出来用。
 	RelevantAttributesToCapture.Add(GetWarriorDamageCapture().AttackPowerDef);
 	RelevantAttributesToCapture.Add(GetWarriorDamageCapture().DefensePowerDef);
 	RelevantAttributesToCapture.Add(GetWarriorDamageCapture().DamageTakenDef);
