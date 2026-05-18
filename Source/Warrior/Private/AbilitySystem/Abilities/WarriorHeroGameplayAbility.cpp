@@ -7,11 +7,11 @@
 #include "Controllers/WarriorHeroController.h"
 #include "WarriorGameplayTags.h"
 
-AWarriorHeroCharacter* UWarriorHeroGameplayAbility::GetHeroCharacterFromActorInfo()
+AWarriorHeroCharacter* UWarriorHeroGameplayAbility::GetHeroCharacterFromActorInfo() const
 {
 	// 懒加载缓存：首次调用时从 ActorInfo 取角色并缓存，后续复用，减少重复 Cast。
 	// 使用 WeakPtr 避免延长对象生命周期；对象销毁后 IsValid() 会自然失效。
-	if (!CachedHeroCharacter.IsValid())
+	if (!CachedHeroCharacter.IsValid() && CurrentActorInfo)
 	{
 		CachedHeroCharacter = Cast<AWarriorHeroCharacter>(CurrentActorInfo->AvatarActor);
 	}
@@ -19,10 +19,10 @@ AWarriorHeroCharacter* UWarriorHeroGameplayAbility::GetHeroCharacterFromActorInf
 	return CachedHeroCharacter.IsValid() ? CachedHeroCharacter.Get() : nullptr;
 }
 
-AWarriorHeroController* UWarriorHeroGameplayAbility::GetHeroControllerFromActorInfo()
+AWarriorHeroController* UWarriorHeroGameplayAbility::GetHeroControllerFromActorInfo() const
 {
 	// 与角色缓存逻辑一致：按需缓存 Controller，避免频繁查找。
-	if (!CachedHeroController.IsValid())
+	if (!CachedHeroController.IsValid() && CurrentActorInfo)
 	{
 		CachedHeroController = Cast<AWarriorHeroController>(CurrentActorInfo->PlayerController);
 	}
@@ -30,10 +30,11 @@ AWarriorHeroController* UWarriorHeroGameplayAbility::GetHeroControllerFromActorI
 	return CachedHeroController.IsValid() ? CachedHeroController.Get() : nullptr;
 }
 
-UHeroCombatComponent* UWarriorHeroGameplayAbility::GetHeroCombatComponentFromActorInfo()
+UHeroCombatComponent* UWarriorHeroGameplayAbility::GetHeroCombatComponentFromActorInfo() const
 {
 	// 依赖角色对象拿战斗组件；调用侧应确保当前能力确实绑定在 Hero 身上。
-	return GetHeroCharacterFromActorInfo()->GetHeroCombatComponent();
+	AWarriorHeroCharacter* HeroCharacter = GetHeroCharacterFromActorInfo();
+	return HeroCharacter ? HeroCharacter->GetHeroCombatComponent() : nullptr;
 }
 
 FGameplayEffectSpecHandle UWarriorHeroGameplayAbility::HeroDamageEffectHandle(TSubclassOf<UGameplayEffect> EffectClass,

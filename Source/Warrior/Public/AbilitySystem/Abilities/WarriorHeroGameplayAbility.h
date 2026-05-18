@@ -20,13 +20,13 @@ class WARRIOR_API UWarriorHeroGameplayAbility : public UWarriorGameplayAbility
 public:
 	//获取玩家角色
 	UFUNCTION(BlueprintPure,Category="Warrior|Ability")
-	AWarriorHeroCharacter* GetHeroCharacterFromActorInfo();
+	AWarriorHeroCharacter* GetHeroCharacterFromActorInfo() const;
 	//获取玩家控制器
 	UFUNCTION(BlueprintPure,Category="Warrior|Ability")
-	AWarriorHeroController* GetHeroControllerFromActorInfo();
+	AWarriorHeroController* GetHeroControllerFromActorInfo() const;
 	//获取玩家战斗组件
 	UFUNCTION(BlueprintPure,Category="Warrior|Ability")
-	UHeroCombatComponent* GetHeroCombatComponentFromActorInfo();
+	UHeroCombatComponent* GetHeroCombatComponentFromActorInfo() const;
 	//
 	UFUNCTION(BlueprintPure,Category="Warrior|Ability")
 	FGameplayEffectSpecHandle HeroDamageEffectHandle(TSubclassOf<UGameplayEffect>EffectClass,float InWeaponBaseDamage,FGameplayTag InCurrentAttackTypeTag,int32 InUsedComboCount);
@@ -36,9 +36,9 @@ public:
 	
 private:
 	//弱指针引用缓存角色，指向 UObject/AActor 的弱指针，不会阻止对象被 GC/销毁；对象没了它会自动变成无效（不会变成悬空野指针）。-4.1
-	TWeakObjectPtr<AWarriorHeroCharacter> CachedHeroCharacter;
+	mutable TWeakObjectPtr<AWarriorHeroCharacter> CachedHeroCharacter;
 	//弱指针引用缓存控制器
-	TWeakObjectPtr<AWarriorHeroController> CachedHeroController;
+	mutable TWeakObjectPtr<AWarriorHeroController> CachedHeroController;
 	//弱指针
-	TWeakObjectPtr<UHeroCombatComponent> CacheHeroCombatComponent;
+	mutable TWeakObjectPtr<UHeroCombatComponent> CacheHeroCombatComponent;
 };
