@@ -5,7 +5,7 @@
 
 namespace WarriorGameplayTags
 {
-	
+
 	/**玩家标签**/
 	//输入标签
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_Move,"InputTag.Move");//移动标签
@@ -24,8 +24,13 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_Toggleable,"InputTag.Toggleable");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_Toggleable_TargetLock,"InputTag.Toggleable.TargetLock");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_SwitchTarget,"InputTag.SwitchTarget");
-	
+
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_PickUp_Stones,"InputTag.PickUp.Stones");
+
+	UE_DEFINE_GAMEPLAY_TAG(InputTag_SwitchCharacter_1,"InputTag.SwitchCharacter.1");
+	UE_DEFINE_GAMEPLAY_TAG(InputTag_SwitchCharacter_2,"InputTag.SwitchCharacter.2");
+	UE_DEFINE_GAMEPLAY_TAG(InputTag_SwitchCharacter_3,"InputTag.SwitchCharacter.3");
+
 	//玩法相关标签//4.1
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_Equip_Axe,"Player.Ability.Equip.Axe");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_UnequipAxe,"Player.Ability.Unequip.Axe");
@@ -39,12 +44,14 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_SpecialWeaponAbility_Light,"Player.Ability.SpecialWeaponAbility.Light");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_SpecialWeaponAbility_Heavy,"Player.Ability.SpecialWeaponAbility.Heavy");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_PickUp_Stones,"Player.Ability.PickUp.Stones");
-	
-	
+	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_SwitchCharacter,"Player.Ability.SwitchCharacter");
+
+
 	UE_DEFINE_GAMEPLAY_TAG(Player_Weapon_Axe,"Player.Weapon.Axe");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Cooldown_SpecialWeaponAbility_Light,"Player.CoolDown.SpecialWeaponAbility_Light");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Cooldown_SpecialWeaponAbility_Heavy,"Player.CoolDown.SpecialWeaponAbility_Heavy");
-	
+	UE_DEFINE_GAMEPLAY_TAG(Player_CoolDown_SwitchCharacter,"Player.CoolDown.SwitchCharacter");
+
 	//事件类
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Equip_Axe,"Player.Event.Equip.Axe");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Unequip_Axe,"Player.Event.Unequip.Axe");
@@ -55,6 +62,8 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_ActivateRage,"Player.Event.ActivateRage");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_AOE,"Player.Event.AOE");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_ConsumeStones,"Player.Event.ConsumeStones");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SwitchIn,"Player.Event.SwitchIn");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SwitchOut,"Player.Event.SwitchOut");
 	//状态类
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_JumpToFinisher,"Player.Status.JumpToFinisher");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Rolling,"Player.Status.Rolling");
@@ -64,13 +73,13 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Rage_Active,"Player.Status.Rage.Active");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Rage_Full,"Player.Status.Rage.Full");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Rage_None,"Player.Status.Rage.None");
-	
+
 	//自主设置
 	UE_DEFINE_GAMEPLAY_TAG(Player_SetByCaller_AttackType_Light,"Player.SetByCaller.AttackType.Light");
 	UE_DEFINE_GAMEPLAY_TAG(Player_SetByCaller_AttackType_Heavy,"Player.SetByCaller.AttackType.Heavy");
-	
-	
-	
+
+
+
 	/**敌人标签**/
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Weapon,"Enemy.Weapon");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Event_SpawnEnemies,"Enemy.Event.SpawnEnemies");
@@ -90,8 +99,8 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Ability_HitReact,"Shared.Ability.HitReact");
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Ability_WeaponClash,"Shared.Ability.WeaponClash");
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Event_HitReact,"Shared.Event.HitReact");
-	
-	
+
+
 	//死亡
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Ability_Death,"Shared.Ability.Death");
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Status_Death,"Shared.Status.Death");
@@ -104,8 +113,8 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Status_Invincible,"Shared.Status.Invincible");
 
 	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_BaseDamage,"Shared.SetByCaller.BaseDamage");
-	
-	
+
+
 	/**游戏数据标签**/
 	UE_DEFINE_GAMEPLAY_TAG(GameData_Level_SurvialGameModeMap,"GameData.Level.SurvivalGameModeMap");
 	UE_DEFINE_GAMEPLAY_TAG(GameData_Level_MainMenuMap,"GameData.Level.MainMenuMap");
