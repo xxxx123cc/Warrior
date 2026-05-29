@@ -62,6 +62,7 @@ void UHeroGameplayAbility_PickUpStones::PickUpStones()
 	
 }
 
+
 void UHeroGameplayAbility_PickUpStones::ConsumeStones()
 {
 	if (PickedUpStones.IsEmpty())
