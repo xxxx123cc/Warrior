@@ -6,11 +6,10 @@
 void UWarriorHeroAnimInstance::NativeInitializeAnimation()
 {
 	Super::NativeInitializeAnimation();
-	 if (OwningCharacter)
-	 {
-	 OwningCharacter = Cast<AWarriorHeroCharacter>(OwningCharacter);
-	 	
-	 }           
+	if (OwningCharacter)
+	{
+		OwningHeroCharacter = Cast<AWarriorHeroCharacter>(OwningCharacter);
+	}
 	
 }
 

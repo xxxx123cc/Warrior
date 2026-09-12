@@ -70,7 +70,7 @@ void UHeroGameplayAbility_TargetLock::OnTargetLockTick(float DeltaTime)
 
 	// 翻滚期间不强行覆盖镜头旋转，避免和翻滚输入/动画表现互相抢控制权。
 	const bool bShouldOverrideRotation =
-		!UWarriorFunctionLibrary::NativeDoesActorHaveTag(CurrentLockedOnTarget, WarriorGameplayTags::Player_Status_Rolling);
+		!UWarriorFunctionLibrary::NativeDoesActorHaveTag(GetHeroCharacterFromActorInfo(), WarriorGameplayTags::Player_Status_Rolling);
 
 	if (!bShouldOverrideRotation)
 	{

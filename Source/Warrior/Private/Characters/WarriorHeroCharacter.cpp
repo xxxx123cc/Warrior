@@ -6,6 +6,7 @@
 #include "Camera/CameraComponent.h"
 #include "DynamicMesh/DynamicMesh3.h"
 #include "components/CapsuleComponent.h"
+#include "Engine/World.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include"EnhancedInputSubsystems.h"
@@ -20,6 +21,13 @@
 #include "Components/UI/HeroUIComponent.h"
 #include "WarriorFunctionLibrary.h"
 #include "GameModes/WarriorBaseGameMode.h"
+
+namespace
+{
+	constexpr float JumpFloorProbeStartOffset = 6.f;
+	constexpr float JumpFloorProbeDistance = 34.f;
+	constexpr float JumpFloorProbeRadiusScale = 0.45f;
+}
 
 AWarriorHeroCharacter::AWarriorHeroCharacter()
 {
@@ -43,6 +51,7 @@ AWarriorHeroCharacter::AWarriorHeroCharacter()
 	GetCharacterMovement()->RotationRate=FRotator(0.f,500.f,0.f);
 	GetCharacterMovement()->MaxWalkSpeed=600.f;
 	GetCharacterMovement()->BrakingDecelerationWalking=2000.f;
+	JumpMaxCount = 2;
 	
 	HeroCombatComponent = CreateDefaultSubobject<UHeroCombatComponent>(TEXT("HeroCombatComponent"));
 	
@@ -64,6 +73,17 @@ UHeroUIComponent* AWarriorHeroCharacter::GetHeroUIComponent() const
 {
 
 	return HeroUIComponent;
+}
+
+void AWarriorHeroCharacter::Jump()
+{
+	if (!Super::CanJumpInternal_Implementation() && HasJumpableFloor())
+	{
+		JumpCurrentCount = 0;
+		JumpCurrentCountPreJump = 0;
+	}
+
+	Super::Jump();
 }
 
 void AWarriorHeroCharacter::PossessedBy(AController* NewController)
@@ -106,6 +126,10 @@ void AWarriorHeroCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (CameraBoom)
+	{
+		CameraBoom->bDoCollisionTest = false;
+	}
 }
 
 void AWarriorHeroCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -148,21 +172,21 @@ void AWarriorHeroCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 void AWarriorHeroCharacter::Input_Move(const FInputActionValue& InputActionValue)
 {				
 	const FVector2D MovementVector = InputActionValue.Get<FVector2D>();
-	
-    const FRotator  MovementRotator(0.f,Controller->GetControlRotation().Yaw,0.f);
-	 
-	if (MovementVector.Y!=0.f)
+
+	const FRotator MovementRotator(0.f, Controller->GetControlRotation().Yaw, 0.f);
+
+	if (MovementVector.Y != 0.f)
 	{
-		const FVector ForwardDirection =MovementRotator.RotateVector(FVector::ForwardVector) ;
+		const FVector ForwardDirection = MovementRotator.RotateVector(FVector::ForwardVector);
 		
-		AddMovementInput(ForwardDirection,MovementVector.Y);
+		AddMovementInput(ForwardDirection, MovementVector.Y);
 		
 	}
-	if (MovementVector.X!=0.f)
+	if (MovementVector.X != 0.f)
 	{
 		const FVector RightDirection = MovementRotator.RotateVector(FVector::RightVector);
 		
-		AddMovementInput(RightDirection,MovementVector.X);
+		AddMovementInput(RightDirection, MovementVector.X);
 	
 	}
 	
@@ -226,4 +250,75 @@ void AWarriorHeroCharacter::Input_AbilityInputPressed(FGameplayTag Input_Tag)
 void AWarriorHeroCharacter::Input_AbilityInputReleased(FGameplayTag Input_Tag)
 {
 	WarriorAbilitySystemComponent->OnAbilityInputReleased(Input_Tag);
+}
+
+bool AWarriorHeroCharacter::CanJumpInternal_Implementation() const
+{
+	if (Super::CanJumpInternal_Implementation())
+	{
+		return true;
+	}
+
+	const UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
+	if (!MovementComponent || bIsCrouched || JumpMaxCount <= 0)
+	{
+		return false;
+	}
+
+	if (MovementComponent->IsSwimming() || MovementComponent->IsFlying() || MovementComponent->MovementMode == MOVE_None)
+	{
+		return false;
+	}
+
+	return HasJumpableFloor();
+}
+
+bool AWarriorHeroCharacter::HasJumpableFloor() const
+{
+	const UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
+	const UCapsuleComponent* HeroCapsuleComponent = GetCapsuleComponent();
+	const UWorld* World = GetWorld();
+	if (!MovementComponent || !HeroCapsuleComponent || !World)
+	{
+		return false;
+	}
+
+	const float CapsuleRadius = HeroCapsuleComponent->GetScaledCapsuleRadius();
+	const float CapsuleHalfHeight = HeroCapsuleComponent->GetScaledCapsuleHalfHeight();
+	const float ProbeOffset = CapsuleRadius * JumpFloorProbeRadiusScale;
+	const FVector FeetLocation = GetActorLocation() - FVector(0.f, 0.f, CapsuleHalfHeight);
+	const FVector ProbeOffsets[] =
+	{
+		FVector::ZeroVector,
+		GetActorForwardVector() * ProbeOffset,
+		-GetActorForwardVector() * ProbeOffset,
+		GetActorRightVector() * ProbeOffset,
+		-GetActorRightVector() * ProbeOffset
+	};
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(WarriorHeroJumpFloorProbe), false, this);
+	QueryParams.AddIgnoredActor(this);
+
+	const ECollisionChannel TraceChannel = HeroCapsuleComponent->GetCollisionObjectType();
+	for (const FVector& ProbeOffsetVector : ProbeOffsets)
+	{
+		TArray<FHitResult> Hits;
+		const FVector Start = FeetLocation + ProbeOffsetVector + FVector(0.f, 0.f, JumpFloorProbeStartOffset);
+		const FVector End = FeetLocation + ProbeOffsetVector - FVector(0.f, 0.f, JumpFloorProbeDistance);
+
+		if (!World->LineTraceMultiByChannel(Hits, Start, End, TraceChannel, QueryParams))
+		{
+			continue;
+		}
+
+		for (const FHitResult& Hit : Hits)
+		{
+			if (Hit.bBlockingHit && MovementComponent->IsWalkable(Hit))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
 }

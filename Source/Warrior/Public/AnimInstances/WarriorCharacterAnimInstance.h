@@ -33,6 +33,41 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="AnimData|LocalMotionData")
 	float GroundSpeed;
 	
+	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="AnimData|LocalMotionData")
+	float GroundSpeedx;
+	
+	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="AnimData|LocalMotionData")
+	float GroundSpeedy;
+
+	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category="AnimData|LocalMotionData")
+	float DirectionalBlendSpaceMaxSpeed = 600.f;
+
+	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="AnimData|LocalMotionData")
+	float DirectionalBlendSpaceX = 50.f;
+
+	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="AnimData|LocalMotionData")
+	float DirectionalBlendSpaceY = 50.f;
+     //垂直速度
+	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="AnimData|Jump")
+	float VerticalVelocity;
+
+	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="AnimData|Jump")
+	int32 JumpCurrentCount;
+
+	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="AnimData|Jump")
+	bool bIsFalling;
+
+	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="AnimData|Jump")
+	bool bIsDoubleJumping;
+
+	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="AnimData|Jump")
+	bool bShouldEnterJumpState;
+
+	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="AnimData|Jump")
+	bool bShouldEnterFallingState;
+
+	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="AnimData|Jump")
+	bool bShouldEnterLandState;
 	// 标记角色当前是否正在加速
 	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="AnimData|Locomotion")
 	bool bHasAcceleration;

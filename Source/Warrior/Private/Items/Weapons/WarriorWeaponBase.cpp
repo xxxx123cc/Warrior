@@ -5,6 +5,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystem/WarriorAbilitySystemComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "GameFramework/Pawn.h"
 #include "TimerManager.h"
 #include "WarriorFunctionLibrary.h"
@@ -22,11 +23,23 @@ AWarriorWeaponBase::AWarriorWeaponBase()
 
 	WeaponMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMesh"));
 	SetRootComponent(WeaponMesh);
+	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	WeaponMesh->SetCollisionResponseToAllChannels(ECR_Ignore);
+	WeaponMesh->SetGenerateOverlapEvents(false);
+	WeaponMesh->CanCharacterStepUpOn = ECB_No;
+	WeaponMesh->SetCanEverAffectNavigation(false);
 
 	WeaponCollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("WeaponCollisionBox"));
 	WeaponCollisionBox->SetupAttachment(GetRootComponent());
 	WeaponCollisionBox->SetBoxExtent(FVector(20.f));
 	WeaponCollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	WeaponCollisionBox->SetCollisionObjectType(ECC_WorldDynamic);
+	WeaponCollisionBox->SetCollisionResponseToAllChannels(ECR_Ignore);
+	WeaponCollisionBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	WeaponCollisionBox->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	WeaponCollisionBox->SetGenerateOverlapEvents(true);
+	WeaponCollisionBox->CanCharacterStepUpOn = ECB_No;
+	WeaponCollisionBox->SetCanEverAffectNavigation(false);
 	WeaponCollisionBox->OnComponentBeginOverlap.AddDynamic(this, &AWarriorWeaponBase::OnWeaponOverlapBegin);
 	WeaponCollisionBox->OnComponentEndOverlap.AddDynamic(this, &AWarriorWeaponBase::OnWeaponOverlapEnd);
 }

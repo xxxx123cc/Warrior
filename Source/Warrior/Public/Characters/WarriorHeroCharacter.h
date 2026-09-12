@@ -23,6 +23,7 @@ class WARRIOR_API AWarriorHeroCharacter : public AWarriorBaseCharacter
 	GENERATED_BODY()
 public:
 	AWarriorHeroCharacter();
+	virtual void Jump() override;
 	virtual UPawnCombatComponent* GetPawnCombatComponent() const override ;
 
 	virtual UPawnUIComponent* GetPawnUIComponent() const override ;
@@ -34,6 +35,7 @@ protected:
 
 	virtual void BeginPlay() override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual bool CanJumpInternal_Implementation() const override;
 
 private:
 #pragma region Components
@@ -71,6 +73,8 @@ private:
 
 	void Input_AbilityInputReleased(FGameplayTag Input_Tag);
     #pragma endregion
+
+	bool HasJumpableFloor() const;
 
 public:
 	FORCEINLINE UHeroCombatComponent* GetHeroCombatComponent() const{return HeroCombatComponent;}
