@@ -68,4 +68,7 @@ public:
 	// 记录一次连击输入（通常由输入事件调用）。
 	void OnComboInputPressed();
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Warrior|Combo")
+	void BP_OnComboInputPressed();
+
 };

@@ -121,4 +121,5 @@ void UWarriorGameplayAbility::ApplyGameplayEffectSpecHandleToHitResults(
 void UWarriorGameplayAbility::OnComboInputPressed()
 {
 	bHasPendingComboInput = true;
+	BP_OnComboInputPressed();
 }
