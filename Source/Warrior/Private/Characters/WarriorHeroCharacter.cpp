@@ -132,6 +132,18 @@ void AWarriorHeroCharacter::BeginPlay()
 	}
 }
 
+void AWarriorHeroCharacter::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+
+	FGameplayEventData Data;
+	Data.EventTag = WarriorGameplayTags::Player_Event_Landed;
+	Data.Instigator = this;
+	Data.Target = this;
+
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, WarriorGameplayTags::Player_Event_Landed, Data);
+}
+
 void AWarriorHeroCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {   // 确保已设置用于输入绑定的配置数据资产
     checkf(InputConfigDataAsset,TEXT("找不到有效的数据资产"));  

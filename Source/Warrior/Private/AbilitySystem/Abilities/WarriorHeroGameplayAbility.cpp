@@ -37,6 +37,30 @@ UHeroCombatComponent* UWarriorHeroGameplayAbility::GetHeroCombatComponentFromAct
 	return HeroCharacter ? HeroCharacter->GetHeroCombatComponent() : nullptr;
 }
 
+bool UWarriorHeroGameplayAbility::IsHeroAirborne() const
+{
+	const UWarriorAbilitySystemComponent* WarriorASC = GetWarriorASCFromActorInfo();
+	return WarriorASC && WarriorASC->IsAvatarAirborne();
+}
+
+bool UWarriorHeroGameplayAbility::IsHeroRageActive() const
+{
+	const UWarriorAbilitySystemComponent* WarriorASC = GetWarriorASCFromActorInfo();
+	return WarriorASC && WarriorASC->IsRageActive();
+}
+
+bool UWarriorHeroGameplayAbility::IsHeroAttackInputBlocked(FGameplayTag InputTag) const
+{
+	const UWarriorAbilitySystemComponent* WarriorASC = GetWarriorASCFromActorInfo();
+	return WarriorASC && WarriorASC->IsInputBlockedByAttackState(InputTag);
+}
+
+TArray<FGameplayTag> UWarriorHeroGameplayAbility::ResolveHeroAbilityInputTagPriority(FGameplayTag InputTag) const
+{
+	const UWarriorAbilitySystemComponent* WarriorASC = GetWarriorASCFromActorInfo();
+	return WarriorASC ? WarriorASC->ResolveAbilityInputTagPriority(InputTag) : TArray<FGameplayTag>();
+}
+
 FGameplayEffectSpecHandle UWarriorHeroGameplayAbility::HeroDamageEffectHandle(TSubclassOf<UGameplayEffect> EffectClass,
 	float InWeaponBaseDamage, FGameplayTag InCurrentAttackTypeTag, int32 InUsedComboCount)
 {

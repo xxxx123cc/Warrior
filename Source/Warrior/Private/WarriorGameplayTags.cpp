@@ -15,6 +15,10 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_UnEquipAxe,"InputTag.UnEquipAxe");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_LightAttack_Axe,"InputTag.LightAttack.Axe");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_HeavyAttack_Axe,"InputTag.HeavyAttack.Axe");
+	UE_DEFINE_GAMEPLAY_TAG(InputTag_HeavyAttack_Axe_Air,"InputTag.HeavyAttack.Axe.Air");
+	UE_DEFINE_GAMEPLAY_TAG(InputTag_LightAttack_Axe_Rage_Ground,"InputTag.LightAttack.Axe.Rage.Ground");
+	UE_DEFINE_GAMEPLAY_TAG(InputTag_HeavyAttack_Axe_Rage_Ground,"InputTag.HeavyAttack.Axe.Rage.Ground");
+	UE_DEFINE_GAMEPLAY_TAG(InputTag_LightAttack_Axe_Rage_Air,"InputTag.LightAttack.Axe.Rage.Air");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_MustBeHeld,"InputTag.MustBeHeld");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_MustBeHeld_Block,"InputTag.MustBeHeld.Block");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_MustBeHeld_Jump,"InputTag.MustBeHeld.Jump");
@@ -53,6 +57,7 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Cooldown_SpecialWeaponAbility_Light,"Player.CoolDown.SpecialWeaponAbility_Light");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Cooldown_SpecialWeaponAbility_Heavy,"Player.CoolDown.SpecialWeaponAbility_Heavy");
 	UE_DEFINE_GAMEPLAY_TAG(Player_CoolDown_SwitchCharacter,"Player.CoolDown.SwitchCharacter");
+	UE_DEFINE_GAMEPLAY_TAG(Player_CoolDown_Roll,"Player.CoolDown.Roll");
 
 	//事件类
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Equip_Axe,"Player.Event.Equip.Axe");
@@ -66,6 +71,7 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_ConsumeStones,"Player.Event.ConsumeStones");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SwitchIn,"Player.Event.SwitchIn");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SwitchOut,"Player.Event.SwitchOut");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Landed,"Player.Event.Landed");
 	//状态类
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_JumpToFinisher,"Player.Status.JumpToFinisher");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Rolling,"Player.Status.Rolling");

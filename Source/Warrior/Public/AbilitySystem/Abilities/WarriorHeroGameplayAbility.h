@@ -27,6 +27,19 @@ public:
 	//获取玩家战斗组件
 	UFUNCTION(BlueprintPure,Category="Warrior|Ability")
 	UHeroCombatComponent* GetHeroCombatComponentFromActorInfo() const;
+
+	UFUNCTION(BlueprintPure, Category="Warrior|Ability|Attack")
+	bool IsHeroAirborne() const;
+
+	UFUNCTION(BlueprintPure, Category="Warrior|Ability|Attack")
+	bool IsHeroRageActive() const;
+
+	UFUNCTION(BlueprintPure, Category="Warrior|Ability|Attack")
+	bool IsHeroAttackInputBlocked(FGameplayTag InputTag) const;
+
+	UFUNCTION(BlueprintPure, Category="Warrior|Ability|Attack")
+	TArray<FGameplayTag> ResolveHeroAbilityInputTagPriority(FGameplayTag InputTag) const;
+
 	//
 	UFUNCTION(BlueprintPure,Category="Warrior|Ability")
 	FGameplayEffectSpecHandle HeroDamageEffectHandle(TSubclassOf<UGameplayEffect>EffectClass,float InWeaponBaseDamage,FGameplayTag InCurrentAttackTypeTag,int32 InUsedComboCount);
