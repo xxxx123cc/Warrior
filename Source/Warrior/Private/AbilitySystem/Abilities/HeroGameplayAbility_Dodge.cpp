@@ -108,7 +108,7 @@ void UHeroGameplayAbility_Dodge::ActivateAbility(
 		}
 	}
 
-	StartDodgeMovement(*HeroCharacter, DodgeDirection);
+	StartDodgeMovement(*HeroCharacter, DodgeDirection, bHasMovementInput);
 
 	if (MontageToPlay)
 	{
@@ -229,9 +229,12 @@ UAnimMontage* UHeroGameplayAbility_Dodge::SelectDodgeMontage(bool bHasMovementIn
 	return SelectedMontage ? SelectedMontage : DodgeMontage.Get();
 }
 
-void UHeroGameplayAbility_Dodge::StartDodgeMovement(AWarriorHeroCharacter& HeroCharacter, const FVector& DodgeDirection) const
+void UHeroGameplayAbility_Dodge::StartDodgeMovement(
+	AWarriorHeroCharacter& HeroCharacter,
+	const FVector& DodgeDirection,
+	bool bHasMovementInput) const
 {
-	if (bRotateToDodgeDirection)
+	if (bRotateToDodgeDirection && bHasMovementInput)
 	{
 		FRotator TargetRotation = DodgeDirection.ToOrientationRotator();
 		TargetRotation.Pitch = 0.f;

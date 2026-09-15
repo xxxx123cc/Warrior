@@ -84,7 +84,7 @@ private:
 	bool HasDodgeMovementInput(const AWarriorHeroCharacter& HeroCharacter) const;
 	FVector ResolveDodgeDirection(const AWarriorHeroCharacter& HeroCharacter, bool bHasMovementInput) const;
 	UAnimMontage* SelectDodgeMontage(bool bHasMovementInput) const;
-	void StartDodgeMovement(AWarriorHeroCharacter& HeroCharacter, const FVector& DodgeDirection) const;
+	void StartDodgeMovement(AWarriorHeroCharacter& HeroCharacter, const FVector& DodgeDirection, bool bHasMovementInput) const;
 	void AddDodgeTags(const FGameplayAbilityActorInfo* ActorInfo);
 	void RemoveDodgeTags(const FGameplayAbilityActorInfo* ActorInfo);
 	void StartCooldown(const FGameplayAbilityActorInfo* ActorInfo) const;
