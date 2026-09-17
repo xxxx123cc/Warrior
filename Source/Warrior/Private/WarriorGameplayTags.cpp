@@ -13,6 +13,8 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_Roll,"InputTag.Roll");//视角标签
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_EquipAxe,"InputTag.EquipAxe");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_UnEquipAxe,"InputTag.UnEquipAxe");
+	UE_DEFINE_GAMEPLAY_TAG(InputTag_LightAttack,"InputTag.LightAttack");
+	UE_DEFINE_GAMEPLAY_TAG(InputTag_HeavyAttack,"InputTag.HeavyAttack");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_LightAttack_Axe,"InputTag.LightAttack.Axe");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_HeavyAttack_Axe,"InputTag.HeavyAttack.Axe");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_HeavyAttack_Axe_Air,"InputTag.HeavyAttack.Axe.Air");
@@ -72,8 +74,11 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SwitchIn,"Player.Event.SwitchIn");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SwitchOut,"Player.Event.SwitchOut");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Landed,"Player.Event.Landed");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Event_MoveCancel,"Player.Event.MoveCancel");
 	//状态类
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_JumpToFinisher,"Player.Status.JumpToFinisher");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Attacking,"Player.Status.Attacking");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_CanMoveCancel,"Player.Status.CanMoveCancel");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Rolling,"Player.Status.Rolling");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Blocking,"Player.Status.Blocking");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_TargetLock,"Player.Status.TargetLock");

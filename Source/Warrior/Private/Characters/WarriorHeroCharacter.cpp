@@ -27,6 +27,7 @@ namespace
 	constexpr float JumpFloorProbeStartOffset = 6.f;
 	constexpr float JumpFloorProbeDistance = 34.f;
 	constexpr float JumpFloorProbeRadiusScale = 0.45f;
+	constexpr float CameraCollisionProbeSize = 12.f;
 }
 
 AWarriorHeroCharacter::AWarriorHeroCharacter()
@@ -42,6 +43,9 @@ AWarriorHeroCharacter::AWarriorHeroCharacter()
 	CameraBoom->TargetArmLength=200.f;
 	CameraBoom->SocketOffset= FVector(0.f,55.f,65.f);
 	CameraBoom->bUsePawnControlRotation = true;
+	CameraBoom->bDoCollisionTest = true;
+	CameraBoom->ProbeChannel = ECC_Camera;
+	CameraBoom->ProbeSize = CameraCollisionProbeSize;
 	//摄像机
 	FollowCamera=CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom,USpringArmComponent::SocketName);
@@ -128,7 +132,9 @@ void AWarriorHeroCharacter::BeginPlay()
 
 	if (CameraBoom)
 	{
-		CameraBoom->bDoCollisionTest = false;
+		CameraBoom->bDoCollisionTest = true;
+		CameraBoom->ProbeChannel = ECC_Camera;
+		CameraBoom->ProbeSize = CameraCollisionProbeSize;
 	}
 }
 
@@ -184,6 +190,17 @@ void AWarriorHeroCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 void AWarriorHeroCharacter::Input_Move(const FInputActionValue& InputActionValue)
 {				
 	const FVector2D MovementVector = InputActionValue.Get<FVector2D>();
+
+	if (!MovementVector.IsNearlyZero() &&
+		UWarriorFunctionLibrary::NativeDoesActorHaveTag(this, WarriorGameplayTags::Player_Status_CanMoveCancel))
+	{
+		FGameplayEventData Data;
+		Data.EventTag = WarriorGameplayTags::Player_Event_MoveCancel;
+		Data.Instigator = this;
+		Data.Target = this;
+
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, WarriorGameplayTags::Player_Event_MoveCancel, Data);
+	}
 
 	const FRotator MovementRotator(0.f, Controller->GetControlRotation().Yaw, 0.f);
 

@@ -10,6 +10,7 @@
 class UPawnCombatComponent;
 class AActor;
 class UWarriorAbilitySystemComponent;
+class UAbilityTask_WaitGameplayEvent;
 // 控制技能在被授予后的触发时机：
 // - OnTriggered: 仅在外部输入/事件触发时激活
 // - OnGiven: 技能授予后立即自动激活
@@ -32,6 +33,11 @@ class WARRIOR_API UWarriorGameplayAbility : public UGameplayAbility
 protected:
 	//~Begin UGameplayAbility Interface
 	// 技能被授予时，根据激活策略决定是否立即尝试激活。
+	virtual void ActivateAbility(
+		const FGameplayAbilitySpecHandle Handle,
+		const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilityActivationInfo ActivationInfo,
+		const FGameplayEventData* TriggerEventData) override;
 	virtual void OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec) override;
 	// 技能结束时，如果是 OnGiven 一次性技能，则清理该能力句柄。
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
@@ -40,6 +46,12 @@ protected:
 	// 激活策略默认使用 OnTriggered，避免授予时自动触发。
 	UPROPERTY(EditDefaultsOnly,category = "WarriorAbility")
 	EwarriorAbilityActivationPolicy AbilityActivationPolicy= EwarriorAbilityActivationPolicy::OnTriggered;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "WarriorAbility|MoveCancel")
+	bool bEnableAttackMoveCancel = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "WarriorAbility|MoveCancel", meta = (ClampMin = "0.0"))
+	float MoveCancelMontageBlendOutTime = 0.1f;
 
 	// 从当前 Avatar 上获取战斗组件，供技能读取武器/连击等战斗状态。
 	UFUNCTION(BlueprintPure,Category="Ability|Combat")
@@ -71,4 +83,20 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Warrior|Combo")
 	void BP_OnComboInputPressed();
 
+private:
+	void StartMoveCancelListener(const FGameplayAbilityActorInfo* ActorInfo);
+	bool ShouldUseMoveCancelForActivation(
+		const FGameplayAbilitySpecHandle Handle,
+		const FGameplayAbilityActorInfo* ActorInfo) const;
+	static bool IsAttackInputTag(FGameplayTag InputTag);
+	void AddAttackMoveCancelTags(const FGameplayAbilityActorInfo* ActorInfo) const;
+	void RemoveAttackMoveCancelTags(const FGameplayAbilityActorInfo* ActorInfo) const;
+
+	UFUNCTION()
+	void OnMoveCancelEventReceived(FGameplayEventData Payload);
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAbilityTask_WaitGameplayEvent> MoveCancelEventTask = nullptr;
+
+	bool bMoveCancelBoundForCurrentActivation = false;
 };

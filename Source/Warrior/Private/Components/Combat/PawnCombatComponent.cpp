@@ -8,8 +8,31 @@
 void UPawnCombatComponent::RegisterSpawnedWeapon(FGameplayTag InWeaponTagToRegister,
 	AWarriorWeaponBase* InWeaponToRegister, bool bRegisterEquippedWeapon)
 {//检查武器标签不存在于Map里，检查要生成的武器是否有效-4.1
-	checkf(!CarriedWeaponsMap.Contains((InWeaponTagToRegister)),TEXT("a named %s has already as carried weapon"),*InWeaponTagToRegister.ToString())
-	check(InWeaponToRegister);
+	if (!InWeaponToRegister)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("RegisterSpawnedWeapon failed: %s has no weapon actor."), *InWeaponTagToRegister.ToString());
+		return;
+	}
+
+	if (AWarriorWeaponBase** ExistingWeaponPtr = CarriedWeaponsMap.Find(InWeaponTagToRegister))
+	{
+		if (IsValid(*ExistingWeaponPtr))
+		{
+			if (*ExistingWeaponPtr != InWeaponToRegister)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("RegisterSpawnedWeapon skipped duplicate weapon: %s."), *InWeaponTagToRegister.ToString());
+				InWeaponToRegister->Destroy();
+			}
+
+			if (bRegisterEquippedWeapon)
+			{
+				CurrentEquippedWeaponTag = InWeaponTagToRegister;
+			}
+			return;
+		}
+
+		CarriedWeaponsMap.Remove(InWeaponTagToRegister);
+	}
 	
 	//将武器标签添加进Map里面
 	CarriedWeaponsMap.Emplace(InWeaponTagToRegister,InWeaponToRegister);

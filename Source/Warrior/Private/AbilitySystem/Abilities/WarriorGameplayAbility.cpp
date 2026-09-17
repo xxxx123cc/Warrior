@@ -2,6 +2,8 @@
 
 
 #include "AbilitySystem/Abilities/WarriorGameplayAbility.h"
+
+#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AbilitySystem/WarriorAbilitySystemComponent.h"
 #include "Components/Combat/PawnCombatComponent.h"
 #include "WarriorDebugHelper.h"
@@ -10,6 +12,24 @@
 #include "WarriorGameplayTags.h"
 
 // OnGiven 策略下，能力一旦授予即自动激活（常用于被动/初始化能力）。
+void UWarriorGameplayAbility::ActivateAbility(
+	const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo,
+	const FGameplayEventData* TriggerEventData)
+{
+	bMoveCancelBoundForCurrentActivation = false;
+	MoveCancelEventTask = nullptr;
+
+	if (ShouldUseMoveCancelForActivation(Handle, ActorInfo))
+	{
+		AddAttackMoveCancelTags(ActorInfo);
+		StartMoveCancelListener(ActorInfo);
+	}
+
+	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+}
+
 void UWarriorGameplayAbility::OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilitySpec& Spec)
 {
@@ -27,6 +47,13 @@ void UWarriorGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle
 	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
 	bool bReplicateEndAbility, bool bWasCancelled)
 {
+	if (bMoveCancelBoundForCurrentActivation)
+	{
+		RemoveAttackMoveCancelTags(ActorInfo);
+		MoveCancelEventTask = nullptr;
+		bMoveCancelBoundForCurrentActivation = false;
+	}
+
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 	
 	if (AbilityActivationPolicy==EwarriorAbilityActivationPolicy::OnGiven)
@@ -41,6 +68,113 @@ void UWarriorGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle
 }
 
 // 从 Avatar 身上快速定位战斗组件，供派生技能复用。
+void UWarriorGameplayAbility::StartMoveCancelListener(const FGameplayAbilityActorInfo* ActorInfo)
+{
+	if (!ActorInfo || !ActorInfo->AvatarActor.IsValid())
+	{
+		return;
+	}
+
+	MoveCancelEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
+		this,
+		WarriorGameplayTags::Player_Event_MoveCancel,
+		ActorInfo->AvatarActor.Get(),
+		true,
+		true);
+
+	if (!MoveCancelEventTask)
+	{
+		return;
+	}
+
+	MoveCancelEventTask->EventReceived.AddDynamic(this, &ThisClass::OnMoveCancelEventReceived);
+	MoveCancelEventTask->ReadyForActivation();
+	bMoveCancelBoundForCurrentActivation = true;
+}
+
+bool UWarriorGameplayAbility::ShouldUseMoveCancelForActivation(
+	const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo) const
+{
+	if (!bEnableAttackMoveCancel || !ActorInfo || !ActorInfo->AbilitySystemComponent.IsValid())
+	{
+		return false;
+	}
+
+	const FGameplayAbilitySpec* Spec = ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle);
+	if (Spec)
+	{
+		for (const FGameplayTag& SourceTag : Spec->GetDynamicSpecSourceTags())
+		{
+			if (IsAttackInputTag(SourceTag))
+			{
+				return true;
+			}
+		}
+	}
+
+	const FGameplayTagContainer& AssetAbilityTags = GetAssetTags();
+	return AssetAbilityTags.HasTagExact(WarriorGameplayTags::Player_Ability_Attack_Light_Axe) ||
+		AssetAbilityTags.HasTagExact(WarriorGameplayTags::Player_Ability_Attack_Heavy_Axe);
+}
+
+bool UWarriorGameplayAbility::IsAttackInputTag(FGameplayTag InputTag)
+{
+	return InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack_Axe) ||
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack) ||
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack_Axe) ||
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack) ||
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack_Axe_Air) ||
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack_Axe_Rage_Ground) ||
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack_Axe_Rage_Ground) ||
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack_Axe_Rage_Air);
+}
+
+void UWarriorGameplayAbility::AddAttackMoveCancelTags(const FGameplayAbilityActorInfo* ActorInfo) const
+{
+	if (ActorInfo && ActorInfo->AvatarActor.IsValid())
+	{
+		UWarriorFunctionLibrary::AddGamePlayTagToActorIfNone(
+			ActorInfo->AvatarActor.Get(),
+			WarriorGameplayTags::Player_Status_Attacking);
+	}
+}
+
+void UWarriorGameplayAbility::RemoveAttackMoveCancelTags(const FGameplayAbilityActorInfo* ActorInfo) const
+{
+	if (ActorInfo && ActorInfo->AvatarActor.IsValid())
+	{
+		UWarriorFunctionLibrary::RemoveGamePlayTagFromActorIfAny(
+			ActorInfo->AvatarActor.Get(),
+			WarriorGameplayTags::Player_Status_CanMoveCancel);
+		UWarriorFunctionLibrary::RemoveGamePlayTagFromActorIfAny(
+			ActorInfo->AvatarActor.Get(),
+			WarriorGameplayTags::Player_Status_Attacking);
+	}
+}
+
+void UWarriorGameplayAbility::OnMoveCancelEventReceived(FGameplayEventData Payload)
+{
+	if (!bMoveCancelBoundForCurrentActivation)
+	{
+		return;
+	}
+
+	AActor* AvatarActor = GetAvatarActorFromActorInfo();
+	if (!AvatarActor ||
+		!UWarriorFunctionLibrary::NativeDoesActorHaveTag(AvatarActor, WarriorGameplayTags::Player_Status_CanMoveCancel))
+	{
+		return;
+	}
+
+	UWarriorFunctionLibrary::RemoveGamePlayTagFromActorIfAny(
+		AvatarActor,
+		WarriorGameplayTags::Player_Status_CanMoveCancel);
+
+	MontageStop(MoveCancelMontageBlendOutTime);
+	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, true);
+}
+
 UPawnCombatComponent* UWarriorGameplayAbility::GetCombatComponentFromActorInfo() const
 {
 	return GetAvatarActorFromActorInfo()->FindComponentByClass<UPawnCombatComponent>();

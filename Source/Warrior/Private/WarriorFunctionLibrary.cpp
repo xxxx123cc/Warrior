@@ -29,7 +29,16 @@ UWarriorAbilitySystemComponent* UWarriorFunctionLibrary::NativeGetWarriorAscFrom
 {
 	// 确保传入的Actor指针有效
 	check(InActor);
-	
+	if (!IsValid(InActor))
+	{
+		return nullptr;
+	}
+	UAbilitySystemComponent* ASC =
+	   UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InActor);
+	if (!IsValid(ASC))
+	{
+		return nullptr;
+	}
 	// 通过AbilitySystemBlueprintLibrary获取ASC，并强制转换为Warrior自定义类型
 	return CastChecked<UWarriorAbilitySystemComponent> (UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InActor));
 }
