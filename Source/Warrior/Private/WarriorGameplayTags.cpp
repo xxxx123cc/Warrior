@@ -66,6 +66,7 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Unequip_Axe,"Player.Event.Unequip.Axe");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_HitPause,"Player.Event.HitPause");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SuccessBlock,"Player.Event.SuccessBlock");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SuccessDodge,"Player.Event.SuccessDodge");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SwitchTarget_Right,"Player.Event.SwitchTarget.Right");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SwitchTarget_Left,"Player.Event.SwitchTarget.Left");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_ActivateRage,"Player.Event.ActivateRage");
@@ -80,6 +81,7 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Attacking,"Player.Status.Attacking");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_CanMoveCancel,"Player.Status.CanMoveCancel");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Rolling,"Player.Status.Rolling");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_DodgeIFrame,"Player.Status.DodgeIFrame");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Blocking,"Player.Status.Blocking");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_TargetLock,"Player.Status.TargetLock");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Rage_Activating,"Player.Status.Rage.Activating");

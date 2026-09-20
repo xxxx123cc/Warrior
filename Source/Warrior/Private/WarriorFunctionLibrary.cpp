@@ -247,6 +247,12 @@ bool UWarriorFunctionLibrary::IsValidBlock(AActor* InAttacker, AActor* InDefende
 	return DotResult >= 0.6;
 }
 
+bool UWarriorFunctionLibrary::IsActorInDodgeIFrame(AActor* InActor)
+{
+	return InActor &&
+		NativeDoesActorHaveTag(InActor, WarriorGameplayTags::Player_Status_DodgeIFrame);
+}
+
 bool UWarriorFunctionLibrary::ApplyGameplayEffectHandleToTarget(AActor* Instigator, AActor* TargetActor,
 	const FGameplayEffectSpecHandle& InSpecHandle)
 {

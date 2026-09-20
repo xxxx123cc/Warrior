@@ -95,7 +95,7 @@ bool UWarriorAbilitySystemComponent::IsInputBlockedByAttackState(const FGameplay
 
 bool UWarriorAbilitySystemComponent::TryHandleAbilityInput(const FGameplayTag& InputTag)
 {
-	for (const FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
+	for (FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
 	{
 		if (!AbilitySpec.GetDynamicSpecSourceTags().HasTagExact(InputTag))
 		{
@@ -119,6 +119,19 @@ bool UWarriorAbilitySystemComponent::TryHandleAbilityInput(const FGameplayTag& I
 
 		if (bIsAbilityActive)
 		{
+			AbilitySpecInputPressed(AbilitySpec);
+
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+			TArray<UGameplayAbility*> Instances = AbilitySpec.GetAbilityInstances();
+			const FGameplayAbilityActivationInfo& ActivationInfo =
+				Instances.IsEmpty() ? AbilitySpec.ActivationInfo : Instances.Last()->GetCurrentActivationInfoRef();
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
+			InvokeReplicatedEvent(
+				EAbilityGenericReplicatedEvent::InputPressed,
+				AbilitySpec.Handle,
+				ActivationInfo.GetActivationPredictionKey());
+
 			if (UWarriorGameplayAbility* WarriorAbility = Cast<UWarriorGameplayAbility>(AbilitySpec.GetPrimaryInstance()))
 			{
 				WarriorAbility->OnComboInputPressed();
@@ -141,11 +154,29 @@ void UWarriorAbilitySystemComponent::OnAbilityInputReleased(const FGameplayTag& 
 		return;
 	}
 
-	for (const FGameplayAbilitySpec& Spec : GetActivatableAbilities())
+	for (FGameplayAbilitySpec& Spec : GetActivatableAbilities())
 	{
 		if (Spec.GetDynamicSpecSourceTags().HasTagExact(InputTag) && Spec.IsActive())
 		{
-			CancelAbilityHandle(Spec.Handle);
+			AbilitySpecInputReleased(Spec);
+
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+			TArray<UGameplayAbility*> Instances = Spec.GetAbilityInstances();
+			const FGameplayAbilityActivationInfo& ActivationInfo =
+				Instances.IsEmpty() ? Spec.ActivationInfo : Instances.Last()->GetCurrentActivationInfoRef();
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
+			InvokeReplicatedEvent(
+				EAbilityGenericReplicatedEvent::InputReleased,
+				Spec.Handle,
+				ActivationInfo.GetActivationPredictionKey());
+
+			UWarriorGameplayAbility* WarriorAbility = Cast<UWarriorGameplayAbility>(Spec.GetPrimaryInstance());
+			const bool bShouldCancelOnRelease = !WarriorAbility || WarriorAbility->ShouldCancelAbilityOnInputRelease();
+			if (bShouldCancelOnRelease && Spec.IsActive())
+			{
+				CancelAbilityHandle(Spec.Handle);
+			}
 		}
 	}
 }

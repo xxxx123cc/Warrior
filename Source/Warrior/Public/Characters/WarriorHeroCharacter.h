@@ -28,6 +28,18 @@ public:
 
 	virtual UPawnUIComponent* GetPawnUIComponent() const override ;
 	virtual UHeroUIComponent* GetHeroUIComponent() const override ;
+
+	UFUNCTION(BlueprintCallable, Category = "Movement|Run")
+	void SetRunning(bool bShouldRun);
+
+	UFUNCTION(BlueprintCallable, Category = "Movement|Run")
+	void ToggleRunState();
+
+	UFUNCTION(BlueprintPure, Category = "Movement|Run")
+	bool IsRunning() const;
+
+	UFUNCTION(BlueprintPure, Category = "Movement|Run")
+	float GetDesiredMovementSpeed() const;
 protected:
 	//~ Begin APawn Interface
 	virtual void PossessedBy(AController* NewController) override;
@@ -54,6 +66,18 @@ private:
 #pragma endregion//添加弹簧臂和摄影机
 
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|Run", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float WalkSpeed = 300.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|Run", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float RunSpeed = 600.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|Run", meta = (AllowPrivateAccess = "true"))
+	bool bStartRunning = false;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Movement|Run", meta = (AllowPrivateAccess = "true"))
+	bool bIsRunning = false;
+
 	#pragma region Inputs
 
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category="CharacterData", meta=(AllowPrivateAccess="true"))
@@ -68,14 +92,17 @@ private:
 
 	void Input_PickUpStonesStarted(const FInputActionValue& InputActionValue);
 
+	void Input_ToggleRun();
+
 	FVector2D SwitchDirection = FVector2D::ZeroVector;
 
 	void Input_AbilityInputPressed(FGameplayTag Input_Tag);
 
 	void Input_AbilityInputReleased(FGameplayTag Input_Tag);
-    #pragma endregion
+#pragma endregion
 
 	bool HasJumpableFloor() const;
+	void ApplyDesiredMovementSpeed();
 
 public:
 	FORCEINLINE UHeroCombatComponent* GetHeroCombatComponent() const{return HeroCombatComponent;}

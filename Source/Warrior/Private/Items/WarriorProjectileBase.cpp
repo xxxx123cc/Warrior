@@ -70,6 +70,15 @@ void AWarriorProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, 
 	FGameplayEventData Data;
 	Data.Instigator =this;
 	Data.Target = HitedPawn;
+	if (UWarriorFunctionLibrary::IsActorInDodgeIFrame(HitedPawn))
+	{
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+			HitedPawn,
+			WarriorGameplayTags::Player_Event_SuccessDodge,
+			Data);
+		Destroy();
+		return;
+	}
 	
 	if (bIsPlayerBlocking)
 	{
@@ -106,6 +115,15 @@ void AWarriorProjectileBase::OnProjectileOverlap(UPrimitiveComponent* Overlapped
 		//是否是敌人
 		if (UWarriorFunctionLibrary::IsTargetPawnHostile(GetInstigator(),HitPawn))
 		{
+			if (UWarriorFunctionLibrary::IsActorInDodgeIFrame(HitPawn))
+			{
+				UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+					HitPawn,
+					WarriorGameplayTags::Player_Event_SuccessDodge,
+					Data);
+				return;
+			}
+
 			HandleApplyProjectileEffect(HitPawn,Data);
 			
 		}

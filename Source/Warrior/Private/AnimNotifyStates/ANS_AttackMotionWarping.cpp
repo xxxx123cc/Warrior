@@ -113,7 +113,25 @@ bool UANS_AttackMotionWarping::ResolveDesiredDirection(const AActor& OwnerActor,
 		return true;
 	}
 
+	if (bUseActorForward && GetActorForwardDirection(OwnerActor, OutDirection))
+	{
+		return true;
+	}
+
 	return bUseControllerYawFallback && GetControllerYawDirection(OwnerActor, OutDirection);
+}
+
+bool UANS_AttackMotionWarping::GetActorForwardDirection(const AActor& OwnerActor, FVector& OutDirection) const
+{
+	FVector ForwardDirection = OwnerActor.GetActorForwardVector();
+	ForwardDirection.Z = 0.f;
+	if (ForwardDirection.SizeSquared() < KINDA_SMALL_NUMBER)
+	{
+		return false;
+	}
+
+	OutDirection = ForwardDirection.GetSafeNormal();
+	return true;
 }
 
 bool UANS_AttackMotionWarping::GetMovementInputDirection(const AActor& OwnerActor, FVector& OutDirection) const

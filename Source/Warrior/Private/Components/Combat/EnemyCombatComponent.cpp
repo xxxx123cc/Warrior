@@ -30,6 +30,15 @@ void UEnemyCombatComponent::OnHitTargetActor(AActor* HitActor)
 	FGameplayEventData EventData;
 	EventData.Instigator = GetOwningPawn();
 	EventData.Target = HitActor;
+	if (UWarriorFunctionLibrary::IsActorInDodgeIFrame(HitActor))
+	{
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+			HitActor,
+			WarriorGameplayTags::Player_Event_SuccessDodge,
+			EventData);
+		return;
+	}
+
 	if (bIsPlayerBlocking&&!bIsMyAttackUnblockable)
 	{//实现格挡检测
 		if (UWarriorFunctionLibrary::IsValidBlock(GetOwningPawn(),HitActor))

@@ -55,6 +55,9 @@ protected:
 	float MinDirectionalInput = 0.1f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Motion Warping")
+	bool bUseActorForward = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Motion Warping")
 	bool bUseMovementInput = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Motion Warping")
@@ -69,6 +72,7 @@ protected:
 private:
 	void UpdateWarpTarget(USkeletalMeshComponent* MeshComp) const;
 	bool ResolveDesiredDirection(const AActor& OwnerActor, FVector& OutDirection) const;
+	bool GetActorForwardDirection(const AActor& OwnerActor, FVector& OutDirection) const;
 	bool GetMovementInputDirection(const AActor& OwnerActor, FVector& OutDirection) const;
 	bool GetControllerYawDirection(const AActor& OwnerActor, FVector& OutDirection) const;
 	FRotator ClampTargetRotation(const AActor& OwnerActor, const FVector& DesiredDirection) const;

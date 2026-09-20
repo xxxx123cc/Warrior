@@ -283,8 +283,7 @@ void UHeroGameplayAbility_TargetLock::InitTargetLockMovement()
 		return;
 	}
 
-	// 缓存进入锁定前的移动参数，结束锁定时恢复。
-	CachedMaxWalkSpeed = CharacterMovement->MaxWalkSpeed;
+	// 缓存进入锁定前的朝向参数，结束锁定时恢复。
 	bCachedOrientRotationToMovement = CharacterMovement->bOrientRotationToMovement;
 	bCachedUseControllerDesiredRotation = CharacterMovement->bUseControllerDesiredRotation;
 	bHasCachedTargetLockMovement = true;
@@ -339,8 +338,7 @@ void UHeroGameplayAbility_TargetLock::ResetTargetLockMovement()
 		return;
 	}
 
-	// 恢复进入锁定前缓存的移动参数。
-	CharacterMovement->MaxWalkSpeed = CachedMaxWalkSpeed;
+	// 恢复进入锁定前缓存的朝向参数。
 	CharacterMovement->bOrientRotationToMovement = bCachedOrientRotationToMovement;
 	CharacterMovement->bUseControllerDesiredRotation = bCachedUseControllerDesiredRotation;
 	bHasCachedTargetLockMovement = false;
@@ -370,17 +368,15 @@ void UHeroGameplayAbility_TargetLock::RefreshTargetLockMovementState()
 		return;
 	}
 
-	// 持有武器时使用战斗锁定移动：降低速度，并让角色朝向由控制器/代码接管。
+	// 持有武器时使用战斗锁定朝向：速度保持角色当前走/跑状态。
 	if (ShouldUseCombatTargetLockRotation())
 	{
-		CharacterMovement->MaxWalkSpeed = TargetLockMaxWalkSpeed;
 		CharacterMovement->bOrientRotationToMovement = false;
 		CharacterMovement->bUseControllerDesiredRotation = false;
 		return;
 	}
 
 	// 未持有武器时恢复普通移动状态，避免空手锁定也强制战斗转向。
-	CharacterMovement->MaxWalkSpeed = CachedMaxWalkSpeed;
 	CharacterMovement->bOrientRotationToMovement = bCachedOrientRotationToMovement;
 	CharacterMovement->bUseControllerDesiredRotation = bCachedUseControllerDesiredRotation;
 }

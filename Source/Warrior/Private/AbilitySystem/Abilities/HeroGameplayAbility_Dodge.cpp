@@ -5,6 +5,7 @@
 
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
+#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AbilitySystem/WarriorAbilitySystemComponent.h"
 #include "Characters/WarriorHeroCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -24,7 +25,6 @@ UHeroGameplayAbility_Dodge::UHeroGameplayAbility_Dodge(const FObjectInitializer&
 
 	CooldownTag = WarriorGameplayTags::Player_CoolDown_Roll;
 	DodgeActiveTags.AddTag(WarriorGameplayTags::Player_Status_Rolling);
-	DodgeActiveTags.AddTag(WarriorGameplayTags::Shared_Status_Invincible);
 }
 
 bool UHeroGameplayAbility_Dodge::CanActivateAbility(
@@ -91,12 +91,15 @@ void UHeroGameplayAbility_Dodge::ActivateAbility(
 		return;
 	}
 
+	HeroCharacter->SetRunning(true);
+
 	const bool bHasMovementInput = HasDodgeMovementInput(*HeroCharacter);
 	const FVector DodgeDirection = ResolveDodgeDirection(*HeroCharacter, bHasMovementInput);
 	UAnimMontage* MontageToPlay = SelectDodgeMontage(bHasMovementInput);
 
 	AddDodgeTags(ActorInfo);
 	StartCooldown(ActorInfo);
+	StartSuccessfulDodgeListener(ActorInfo);
 
 	if (bIgnoreMoveInputDuringDodge)
 	{
@@ -154,6 +157,7 @@ void UHeroGameplayAbility_Dodge::EndAbility(
 
 	bBlockedMoveInput = false;
 	BlockedMoveInputController.Reset();
+	SuccessfulDodgeEventTask = nullptr;
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
@@ -311,6 +315,29 @@ void UHeroGameplayAbility_Dodge::StartCooldown(const FGameplayAbilityActorInfo* 
 		false);
 }
 
+void UHeroGameplayAbility_Dodge::StartSuccessfulDodgeListener(const FGameplayAbilityActorInfo* ActorInfo)
+{
+	if (!ActorInfo || !ActorInfo->AvatarActor.IsValid())
+	{
+		return;
+	}
+
+	SuccessfulDodgeEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
+		this,
+		WarriorGameplayTags::Player_Event_SuccessDodge,
+		ActorInfo->AvatarActor.Get(),
+		true,
+		true);
+
+	if (!SuccessfulDodgeEventTask)
+	{
+		return;
+	}
+
+	SuccessfulDodgeEventTask->EventReceived.AddDynamic(this, &ThisClass::OnSuccessfulDodgeEventReceived);
+	SuccessfulDodgeEventTask->ReadyForActivation();
+}
+
 void UHeroGameplayAbility_Dodge::OnDodgeFinished()
 {
 	if (!IsActive())
@@ -319,4 +346,9 @@ void UHeroGameplayAbility_Dodge::OnDodgeFinished()
 	}
 
 	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);
+}
+
+void UHeroGameplayAbility_Dodge::OnSuccessfulDodgeEventReceived(FGameplayEventData Payload)
+{
+	BP_OnSuccessfulDodge(Payload);
 }

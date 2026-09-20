@@ -10,6 +10,7 @@
 class AController;
 class AWarriorHeroCharacter;
 class UAnimMontage;
+class UAbilityTask_WaitGameplayEvent;
 
 /**
  * Player dodge ability.
@@ -80,6 +81,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dodge")
 	FGameplayTagContainer DodgeActiveTags;
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Dodge")
+	void BP_OnSuccessfulDodge(const FGameplayEventData& Payload);
+
 private:
 	bool HasDodgeMovementInput(const AWarriorHeroCharacter& HeroCharacter) const;
 	FVector ResolveDodgeDirection(const AWarriorHeroCharacter& HeroCharacter, bool bHasMovementInput) const;
@@ -88,12 +92,19 @@ private:
 	void AddDodgeTags(const FGameplayAbilityActorInfo* ActorInfo);
 	void RemoveDodgeTags(const FGameplayAbilityActorInfo* ActorInfo);
 	void StartCooldown(const FGameplayAbilityActorInfo* ActorInfo) const;
+	void StartSuccessfulDodgeListener(const FGameplayAbilityActorInfo* ActorInfo);
 
 	UFUNCTION()
 	void OnDodgeFinished();
+
+	UFUNCTION()
+	void OnSuccessfulDodgeEventReceived(FGameplayEventData Payload);
 
 	bool bAppliedDodgeTags = false;
 	bool bBlockedMoveInput = false;
 
 	TWeakObjectPtr<AController> BlockedMoveInputController;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAbilityTask_WaitGameplayEvent> SuccessfulDodgeEventTask = nullptr;
 };

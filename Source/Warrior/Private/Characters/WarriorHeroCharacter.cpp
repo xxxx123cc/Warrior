@@ -12,6 +12,7 @@
 #include"EnhancedInputSubsystems.h"
 #include"DataAssets/Input/DataAsset_InputConfig.h"
 #include"Components/Input/WarriorInputComponent.h"
+#include "InputCoreTypes.h"
 #include "WarriorGameplayTags.h"
 #include "AbilitySystem/WarriorAbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
@@ -53,7 +54,7 @@ AWarriorHeroCharacter::AWarriorHeroCharacter()
 	//角色移动组件
 	GetCharacterMovement()->bOrientRotationToMovement=true;
 	GetCharacterMovement()->RotationRate=FRotator(0.f,500.f,0.f);
-	GetCharacterMovement()->MaxWalkSpeed=600.f;
+	GetCharacterMovement()->MaxWalkSpeed=GetDesiredMovementSpeed();
 	GetCharacterMovement()->BrakingDecelerationWalking=2000.f;
 	JumpMaxCount = 2;
 	
@@ -77,6 +78,35 @@ UHeroUIComponent* AWarriorHeroCharacter::GetHeroUIComponent() const
 {
 
 	return HeroUIComponent;
+}
+
+void AWarriorHeroCharacter::SetRunning(bool bShouldRun)
+{
+	bIsRunning = bShouldRun;
+	ApplyDesiredMovementSpeed();
+}
+
+void AWarriorHeroCharacter::ToggleRunState()
+{
+	SetRunning(!bIsRunning);
+}
+
+bool AWarriorHeroCharacter::IsRunning() const
+{
+	return bIsRunning;
+}
+
+float AWarriorHeroCharacter::GetDesiredMovementSpeed() const
+{
+	return FMath::Max(bIsRunning ? RunSpeed : WalkSpeed, 0.f);
+}
+
+void AWarriorHeroCharacter::ApplyDesiredMovementSpeed()
+{
+	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+	{
+		MovementComponent->MaxWalkSpeed = GetDesiredMovementSpeed();
+	}
 }
 
 void AWarriorHeroCharacter::Jump()
@@ -129,6 +159,9 @@ void AWarriorHeroCharacter::PossessedBy(AController* NewController)
 void AWarriorHeroCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	bIsRunning = bStartRunning;
+	ApplyDesiredMovementSpeed();
 
 	if (CameraBoom)
 	{
@@ -183,6 +216,9 @@ void AWarriorHeroCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 	WarriorInputComponent->BindNativeInputAction(InputConfigDataAsset,WarriorGameplayTags::InputTag_PickUp_Stones,ETriggerEvent::Started,this,&ThisClass::Input_PickUpStonesStarted);
 	
 	WarriorInputComponent->BindAbilityInputAction(InputConfigDataAsset,this,&ThisClass::Input_AbilityInputPressed,&ThisClass::Input_AbilityInputReleased);
+
+	PlayerInputComponent->BindKey(EKeys::LeftControl, IE_Pressed, this, &ThisClass::Input_ToggleRun);
+	PlayerInputComponent->BindKey(EKeys::RightControl, IE_Pressed, this, &ThisClass::Input_ToggleRun);
 	
 	
 }
@@ -268,6 +304,11 @@ void AWarriorHeroCharacter::Input_PickUpStonesStarted(const FInputActionValue& I
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this,
 	WarriorGameplayTags::Player_Event_ConsumeStones
 	,Data);
+}
+
+void AWarriorHeroCharacter::Input_ToggleRun()
+{
+	ToggleRunState();
 }
 
 void AWarriorHeroCharacter::Input_AbilityInputPressed(FGameplayTag Input_Tag)

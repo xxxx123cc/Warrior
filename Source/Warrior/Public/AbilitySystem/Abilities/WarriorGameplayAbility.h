@@ -53,6 +53,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "WarriorAbility|MoveCancel", meta = (ClampMin = "0.0"))
 	float MoveCancelMontageBlendOutTime = 0.1f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "WarriorAbility|Input")
+	bool bCancelAbilityOnInputRelease = true;
+
 	// 从当前 Avatar 上获取战斗组件，供技能读取武器/连击等战斗状态。
 	UFUNCTION(BlueprintPure,Category="Ability|Combat")
     UPawnCombatComponent* GetCombatComponentFromActorInfo() const;
@@ -79,6 +82,8 @@ public:
 
 	// 记录一次连击输入（通常由输入事件调用）。
 	void OnComboInputPressed();
+
+	bool ShouldCancelAbilityOnInputRelease() const { return bCancelAbilityOnInputRelease; }
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Warrior|Combo")
 	void BP_OnComboInputPressed();

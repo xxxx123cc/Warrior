@@ -75,9 +75,6 @@ private:
 	float TargetLockRotationInterpSpeed = 0.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "TargetLock")
-	float TargetLockMaxWalkSpeed = 0.f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "TargetLock")
 	UInputMappingContext* TargetLockMappingContext;
 
 	UPROPERTY(EditDefaultsOnly, Category = "TargetLock")
@@ -94,9 +91,6 @@ private:
 
 	UPROPERTY()
 	FVector2D TargetLockWidgetSize = FVector2D::ZeroVector;
-
-	UPROPERTY()
-	float CachedMaxWalkSpeed = 0.f;
 
 	UPROPERTY()
 	bool bCachedOrientRotationToMovement = true;

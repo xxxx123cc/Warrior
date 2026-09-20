@@ -16,6 +16,12 @@ void UWarriorHeroAnimInstance::NativeInitializeAnimation()
 void UWarriorHeroAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);
+
+	if (OwningHeroCharacter)
+	{
+		bIsRunning = OwningHeroCharacter->IsRunning();
+	}
+
 	if (bHasAcceleration)
 	{
 		IdleElapsedTime=0.f;
