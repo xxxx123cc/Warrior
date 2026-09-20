@@ -9,7 +9,7 @@
 
 namespace
 {
-	UWarriorAbilitySystemComponent* GetWarriorASCFromMeshOwner(const USkeletalMeshComponent* MeshComp)
+	UWarriorAbilitySystemComponent* GetWarriorASCFromDodgeIFrameMeshOwner(const USkeletalMeshComponent* MeshComp)
 	{
 		AActor* OwnerActor = MeshComp ? MeshComp->GetOwner() : nullptr;
 		return OwnerActor
@@ -33,7 +33,7 @@ void UANS_DodgeIFrame::NotifyBegin(
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
 
-	if (UWarriorAbilitySystemComponent* WarriorASC = GetWarriorASCFromMeshOwner(MeshComp))
+	if (UWarriorAbilitySystemComponent* WarriorASC = GetWarriorASCFromDodgeIFrameMeshOwner(MeshComp))
 	{
 		WarriorASC->AddLooseGameplayTag(WarriorGameplayTags::Player_Status_DodgeIFrame);
 
@@ -51,7 +51,7 @@ void UANS_DodgeIFrame::NotifyEnd(
 {
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
 
-	if (UWarriorAbilitySystemComponent* WarriorASC = GetWarriorASCFromMeshOwner(MeshComp))
+	if (UWarriorAbilitySystemComponent* WarriorASC = GetWarriorASCFromDodgeIFrameMeshOwner(MeshComp))
 	{
 		WarriorASC->RemoveLooseGameplayTag(WarriorGameplayTags::Player_Status_DodgeIFrame);
 
