@@ -9,10 +9,13 @@
 #include "Engine/World.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "EnhancedPlayerInput.h"
 #include"EnhancedInputSubsystems.h"
 #include"DataAssets/Input/DataAsset_InputConfig.h"
 #include"Components/Input/WarriorInputComponent.h"
 #include "InputCoreTypes.h"
+#include "InputAction.h"
+#include "InputActionValue.h"
 #include "WarriorGameplayTags.h"
 #include "AbilitySystem/WarriorAbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
@@ -29,6 +32,7 @@ namespace
 	constexpr float JumpFloorProbeDistance = 34.f;
 	constexpr float JumpFloorProbeRadiusScale = 0.45f;
 	constexpr float CameraCollisionProbeSize = 12.f;
+	constexpr float AttackFacingInputThreshold = 0.1f;
 }
 
 AWarriorHeroCharacter::AWarriorHeroCharacter()
@@ -206,6 +210,8 @@ void AWarriorHeroCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 	
 	// 绑定原生输入动作：将 DataAsset 中标记为 Move 的动作，触发时调用本类的 Input_Move
 	WarriorInputComponent->BindNativeInputAction(InputConfigDataAsset,WarriorGameplayTags::InputTag_Move,ETriggerEvent::Triggered,this,&ThisClass::Input_Move);
+	WarriorInputComponent->BindNativeInputAction(InputConfigDataAsset,WarriorGameplayTags::InputTag_Move,ETriggerEvent::Completed,this,&ThisClass::Input_MoveCompleted);
+	WarriorInputComponent->BindNativeInputAction(InputConfigDataAsset,WarriorGameplayTags::InputTag_Move,ETriggerEvent::Canceled,this,&ThisClass::Input_MoveCompleted);
 	
 	WarriorInputComponent->BindNativeInputAction(InputConfigDataAsset,WarriorGameplayTags::InputTag_Look,ETriggerEvent::Triggered,this,&ThisClass::Input_Look);
 	
@@ -219,6 +225,8 @@ void AWarriorHeroCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 
 	PlayerInputComponent->BindKey(EKeys::LeftControl, IE_Pressed, this, &ThisClass::Input_ToggleRun);
 	PlayerInputComponent->BindKey(EKeys::RightControl, IE_Pressed, this, &ThisClass::Input_ToggleRun);
+	PlayerInputComponent->BindKey(EKeys::MouseScrollUp, IE_Pressed, this, &ThisClass::Input_ZoomIn);
+	PlayerInputComponent->BindKey(EKeys::MouseScrollDown, IE_Pressed, this, &ThisClass::Input_ZoomOut);
 	
 	
 }
@@ -226,6 +234,7 @@ void AWarriorHeroCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 void AWarriorHeroCharacter::Input_Move(const FInputActionValue& InputActionValue)
 {				
 	const FVector2D MovementVector = InputActionValue.Get<FVector2D>();
+	CachedMovementInputVector = MovementVector;
 
 	if (!MovementVector.IsNearlyZero() &&
 		UWarriorFunctionLibrary::NativeDoesActorHaveTag(this, WarriorGameplayTags::Player_Status_CanMoveCancel))
@@ -259,6 +268,11 @@ void AWarriorHeroCharacter::Input_Move(const FInputActionValue& InputActionValue
 	// 例如：如果移动动作是二维向量，可以这样获取：
 	// FVector2D MoveValue = InputActionValue.Get<FVector2D>();
 	// 使用 MoveValue 来驱动角色移动，例如 AddMovementInput
+}
+
+void AWarriorHeroCharacter::Input_MoveCompleted(const FInputActionValue& InputActionValue)
+{
+	CachedMovementInputVector = FVector2D::ZeroVector;
 }
 
 void AWarriorHeroCharacter::Input_Look(const FInputActionValue& InputActionValue)
@@ -311,8 +325,19 @@ void AWarriorHeroCharacter::Input_ToggleRun()
 	ToggleRunState();
 }
 
+void AWarriorHeroCharacter::Input_ZoomIn()
+{
+	AdjustCameraZoom(-CameraZoomStep);
+}
+
+void AWarriorHeroCharacter::Input_ZoomOut()
+{
+	AdjustCameraZoom(CameraZoomStep);
+}
+
 void AWarriorHeroCharacter::Input_AbilityInputPressed(FGameplayTag Input_Tag)
 {
+	TryFaceMovementInputForAttack(Input_Tag);
 	WarriorAbilitySystemComponent->OnAbilityInputPressed(Input_Tag);
 	
 }
@@ -391,4 +416,90 @@ bool AWarriorHeroCharacter::HasJumpableFloor() const
 	}
 
 	return false;
+}
+
+bool AWarriorHeroCharacter::IsAttackInputTag(FGameplayTag InputTag) const
+{
+	return InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack_Axe) ||
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack) ||
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack_Axe) ||
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack) ||
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack_Axe_Air) ||
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack_Axe_Rage_Ground) ||
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack_Axe_Rage_Ground) ||
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack_Axe_Rage_Air);
+}
+
+bool AWarriorHeroCharacter::TryFaceMovementInputForAttack(FGameplayTag InputTag)
+{
+	if (!IsAttackInputTag(InputTag) ||
+		UWarriorFunctionLibrary::NativeDoesActorHaveTag(this, WarriorGameplayTags::Player_Status_TargetLock))
+	{
+		return false;
+	}
+
+	FVector DesiredDirection = FVector::ZeroVector;
+	if (!TryResolveMovementInputDirection(GetCurrentMovementInputVector(), DesiredDirection))
+	{
+		return false;
+	}
+
+	FRotator TargetRotation = DesiredDirection.ToOrientationRotator();
+	TargetRotation.Pitch = 0.f;
+	TargetRotation.Roll = 0.f;
+	SetActorRotation(TargetRotation);
+	return true;
+}
+
+FVector2D AWarriorHeroCharacter::GetCurrentMovementInputVector() const
+{
+	FVector2D MovementVector = CachedMovementInputVector;
+
+	const APlayerController* PlayerController = GetController<APlayerController>();
+	const UInputAction* MoveAction = InputConfigDataAsset
+		? InputConfigDataAsset->FindNativeInputActionByTag(WarriorGameplayTags::InputTag_Move)
+		: nullptr;
+
+	const UEnhancedPlayerInput* EnhancedPlayerInput =
+		PlayerController ? Cast<UEnhancedPlayerInput>(PlayerController->PlayerInput) : nullptr;
+
+	if (EnhancedPlayerInput && MoveAction)
+	{
+		const FInputActionValue CurrentActionValue = EnhancedPlayerInput->GetActionValue(MoveAction);
+		if (CurrentActionValue.GetValueType() == EInputActionValueType::Axis2D)
+		{
+			MovementVector = CurrentActionValue.Get<FVector2D>();
+		}
+	}
+
+	return MovementVector;
+}
+
+bool AWarriorHeroCharacter::TryResolveMovementInputDirection(const FVector2D& MovementVector, FVector& OutDirection) const
+{
+	if (MovementVector.SizeSquared() < FMath::Square(AttackFacingInputThreshold) || !Controller)
+	{
+		return false;
+	}
+
+	const FRotator MovementRotator(0.f, Controller->GetControlRotation().Yaw, 0.f);
+	OutDirection =
+		MovementRotator.RotateVector(FVector::ForwardVector) * MovementVector.Y +
+		MovementRotator.RotateVector(FVector::RightVector) * MovementVector.X;
+	OutDirection.Z = 0.f;
+
+	return OutDirection.Normalize();
+}
+
+void AWarriorHeroCharacter::AdjustCameraZoom(float ArmLengthDelta)
+{
+	if (!CameraBoom)
+	{
+		return;
+	}
+
+	const float MinArmLength = FMath::Min(MinCameraBoomArmLength, MaxCameraBoomArmLength);
+	const float MaxArmLength = FMath::Max(MinCameraBoomArmLength, MaxCameraBoomArmLength);
+	const float TargetArmLength = CameraBoom->TargetArmLength + ArmLengthDelta;
+	CameraBoom->TargetArmLength = FMath::Clamp(TargetArmLength, MinArmLength, MaxArmLength);
 }

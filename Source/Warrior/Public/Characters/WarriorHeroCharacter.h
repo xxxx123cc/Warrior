@@ -54,6 +54,14 @@ private:
 #pragma region Components
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Camera", meta=(AllowPrivateAccess="true"))
 	USpringArmComponent*CameraBoom;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Camera|Zoom", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float MinCameraBoomArmLength = 120.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Camera|Zoom", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float MaxCameraBoomArmLength = 450.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Camera|Zoom", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float CameraZoomStep = 40.f;
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Camera", meta=(AllowPrivateAccess="true"))
 	 UCameraComponent*FollowCamera;//2026.3.30-添加弹簧臂和摄影机
 
@@ -84,6 +92,7 @@ private:
 	UDataAsset_InputConfig* InputConfigDataAsset;
 
 	void Input_Move(const FInputActionValue& InputActionValue);
+	void Input_MoveCompleted(const FInputActionValue& InputActionValue);
 
 	void Input_Look(const FInputActionValue& InputActionValue);
 
@@ -93,6 +102,8 @@ private:
 	void Input_PickUpStonesStarted(const FInputActionValue& InputActionValue);
 
 	void Input_ToggleRun();
+	void Input_ZoomIn();
+	void Input_ZoomOut();
 
 	FVector2D SwitchDirection = FVector2D::ZeroVector;
 
@@ -103,6 +114,13 @@ private:
 
 	bool HasJumpableFloor() const;
 	void ApplyDesiredMovementSpeed();
+	bool IsAttackInputTag(FGameplayTag InputTag) const;
+	bool TryFaceMovementInputForAttack(FGameplayTag InputTag);
+	FVector2D GetCurrentMovementInputVector() const;
+	bool TryResolveMovementInputDirection(const FVector2D& MovementVector, FVector& OutDirection) const;
+	void AdjustCameraZoom(float ArmLengthDelta);
+
+	FVector2D CachedMovementInputVector = FVector2D::ZeroVector;
 
 public:
 	FORCEINLINE UHeroCombatComponent* GetHeroCombatComponent() const{return HeroCombatComponent;}
