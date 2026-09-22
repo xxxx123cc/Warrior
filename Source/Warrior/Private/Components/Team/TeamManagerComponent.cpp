@@ -215,6 +215,8 @@ void UTeamManagerComponent::SaveCurrentCharacterState()
 	State.MaxHealth = AS->GetMaxHealth();
 	State.CurrentRage = AS->GetCurrentRage();
 	State.MaxRage = AS->GetMaxRage();
+	State.CurrentBlockValue = AS->GetCurrentBlockValue();
+	State.MaxBlockValue = AS->GetMaxBlockValue();
 	State.AttackPower = AS->GetAttackPower();
 	State.DefensePower = AS->GetDefensePower();
 	State.LastTransform = ActiveCharacter->GetActorTransform();
@@ -250,6 +252,8 @@ void UTeamManagerComponent::RestoreCharacterState(AWarriorHeroCharacter* Charact
 	ASC->SetNumericAttributeBase(UWarriorAttributeSet::GetMaxHealthAttribute(), State.MaxHealth);
 	ASC->SetNumericAttributeBase(UWarriorAttributeSet::GetCurrentRageAttribute(), State.CurrentRage);
 	ASC->SetNumericAttributeBase(UWarriorAttributeSet::GetMaxRageAttribute(), State.MaxRage);
+	ASC->SetNumericAttributeBase(UWarriorAttributeSet::GetCurrentBlockValueAttribute(), State.CurrentBlockValue);
+	ASC->SetNumericAttributeBase(UWarriorAttributeSet::GetMaxBlockValueAttribute(), State.MaxBlockValue);
 	ASC->SetNumericAttributeBase(UWarriorAttributeSet::GetAttackPowerAttribute(), State.AttackPower);
 	ASC->SetNumericAttributeBase(UWarriorAttributeSet::GetDefensePowerAttribute(), State.DefensePower);
 

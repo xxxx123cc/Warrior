@@ -3,6 +3,8 @@
 
 #include "WarriorFunctionLibrary.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
+#include "AbilitySystem/WarriorAttributeSet.h"
 #include "Warrior/Public/AbilitySystem/WarriorAbilitySystemComponent.h"
 //#include "BlueprintGameplayTagLibrary.h"
 //#include "Warrior/Public/Characters/WarriorBaseCharacter.h"
@@ -19,6 +21,55 @@
 #include "WarriorTypes/WarriorCountDownAction.h"
 #include "Warrior/Public/WarriorGameInstance.h"
 #include "SaveGame/WarriorSaveGame.h"
+#include "Components/UI/HeroUIComponent.h"
+#include "Components/UI/EnemyUIComponent.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Interfaces/PawnUIInterface.h"
+#include "TimerManager.h"
+
+namespace
+{
+	void BroadcastBlockValueChanged(AActor* InActor, float CurrentBlockValue, float MaxBlockValue)
+	{
+		if (!InActor)
+		{
+			return;
+		}
+
+		IPawnUIInterface* PawnUIInterface = Cast<IPawnUIInterface>(InActor);
+		if (!PawnUIInterface)
+		{
+			return;
+		}
+
+		if (UHeroUIComponent* HeroUIComponent = PawnUIInterface->GetHeroUIComponent())
+		{
+			HeroUIComponent->OnCurrentBlockValueChanged.Broadcast(
+				MaxBlockValue > 0.f ? CurrentBlockValue / MaxBlockValue : 0.f);
+		}
+	}
+
+	void BroadcastBossPoiseChanged(AActor* InActor, float CurrentBossPoise, float MaxBossPoise)
+	{
+		if (!InActor)
+		{
+			return;
+		}
+
+		IPawnUIInterface* PawnUIInterface = Cast<IPawnUIInterface>(InActor);
+		if (!PawnUIInterface)
+		{
+			return;
+		}
+
+		if (UEnemyUIComponent* EnemyUIComponent = PawnUIInterface->GetEnemyUIComponent())
+		{
+			EnemyUIComponent->OnCurrentBossPoiseChanged.Broadcast(
+				MaxBossPoise > 0.f ? CurrentBossPoise / MaxBossPoise : 0.f);
+		}
+	}
+}
 /**
  * @brief 从Actor获取WarriorAbilitySystemComponent
  * @param InActor 目标Actor
@@ -251,6 +302,219 @@ bool UWarriorFunctionLibrary::IsActorInDodgeIFrame(AActor* InActor)
 {
 	return InActor &&
 		NativeDoesActorHaveTag(InActor, WarriorGameplayTags::Player_Status_DodgeIFrame);
+}
+
+bool UWarriorFunctionLibrary::HandleSuccessfulBlock(
+	AActor* InBlocker,
+	AActor* InAttacker,
+	float BlockCost,
+	FGameplayEventData EventData)
+{
+	if (!InBlocker)
+	{
+		return false;
+	}
+
+	const float AppliedBlockCost = FMath::Max(0.f, BlockCost);
+
+	EventData.EventTag = WarriorGameplayTags::Player_Event_SuccessBlock;
+	EventData.Target = InBlocker;
+	if (!EventData.Instigator)
+	{
+		EventData.Instigator = InAttacker;
+	}
+	EventData.EventMagnitude = AppliedBlockCost;
+
+	bool bGuardBroken = false;
+
+	if (UAbilitySystemComponent* BlockerASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InBlocker))
+	{
+		const float MaxBlockValue =
+			BlockerASC->GetNumericAttribute(UWarriorAttributeSet::GetMaxBlockValueAttribute());
+		const float CurrentBlockValue =
+			BlockerASC->GetNumericAttribute(UWarriorAttributeSet::GetCurrentBlockValueAttribute());
+
+		if (MaxBlockValue > 0.f)
+		{
+			const float NewCurrentBlockValue = FMath::Clamp(
+				CurrentBlockValue - AppliedBlockCost,
+				0.f,
+				MaxBlockValue);
+
+			BlockerASC->SetNumericAttributeBase(
+				UWarriorAttributeSet::GetCurrentBlockValueAttribute(),
+				NewCurrentBlockValue);
+			BroadcastBlockValueChanged(InBlocker, NewCurrentBlockValue, MaxBlockValue);
+
+			bGuardBroken = NewCurrentBlockValue <= 0.f;
+		}
+		else
+		{
+			bGuardBroken = true;
+			BroadcastBlockValueChanged(InBlocker, 0.f, 0.f);
+		}
+	}
+
+	if (UWarriorAbilitySystemComponent* WarriorBlockerASC =
+		Cast<UWarriorAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InBlocker)))
+	{
+		WarriorBlockerASC->NotifyBlockValueConsumed(bGuardBroken);
+	}
+
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+		InBlocker,
+		WarriorGameplayTags::Player_Event_SuccessBlock,
+		EventData);
+
+	if (bGuardBroken)
+	{
+		if (UAbilitySystemComponent* BlockerASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InBlocker))
+		{
+			BlockerASC->RemoveLooseGameplayTag(WarriorGameplayTags::Player_Status_Blocking);
+			BlockerASC->AddLooseGameplayTag(WarriorGameplayTags::Player_Status_GuardBroken);
+		}
+
+		FGameplayEventData GuardBreakEventData = EventData;
+		GuardBreakEventData.EventTag = WarriorGameplayTags::Player_Event_GuardBreak;
+
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+			InBlocker,
+			WarriorGameplayTags::Player_Event_GuardBreak,
+			GuardBreakEventData);
+	}
+
+	return bGuardBroken;
+}
+
+void UWarriorFunctionLibrary::ResetBlockValueToMax(AActor* InActor, bool bRemoveGuardBrokenStatus)
+{
+	if (!InActor)
+	{
+		return;
+	}
+
+	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InActor);
+	if (!ASC)
+	{
+		return;
+	}
+
+	const float MaxBlockValue = ASC->GetNumericAttribute(UWarriorAttributeSet::GetMaxBlockValueAttribute());
+	const float NewCurrentBlockValue = FMath::Max(0.f, MaxBlockValue);
+
+	ASC->SetNumericAttributeBase(
+		UWarriorAttributeSet::GetCurrentBlockValueAttribute(),
+		NewCurrentBlockValue);
+	BroadcastBlockValueChanged(InActor, NewCurrentBlockValue, MaxBlockValue);
+
+	if (bRemoveGuardBrokenStatus)
+	{
+		ASC->RemoveLooseGameplayTag(WarriorGameplayTags::Player_Status_GuardBroken);
+	}
+}
+
+bool UWarriorFunctionLibrary::ApplyBossPoiseDamage(
+	AActor* InTarget,
+	AActor* InInstigator,
+	float PoiseDamage,
+	float StunDuration)
+{
+	if (!InTarget || PoiseDamage <= 0.f)
+	{
+		return false;
+	}
+
+	IPawnUIInterface* PawnUIInterface = Cast<IPawnUIInterface>(InTarget);
+	if (!PawnUIInterface || !PawnUIInterface->GetEnemyUIComponent())
+	{
+		return false;
+	}
+
+	UWarriorAbilitySystemComponent* TargetASC =
+		Cast<UWarriorAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InTarget));
+	if (!TargetASC ||
+		TargetASC->HasMatchingGameplayTag(WarriorGameplayTags::Shared_Status_Death) ||
+		TargetASC->HasMatchingGameplayTag(WarriorGameplayTags::Enemy_Status_PoiseBroken))
+	{
+		return false;
+	}
+
+	const float MaxBossPoise = TargetASC->GetNumericAttribute(UWarriorAttributeSet::GetMaxBossPoiseAttribute());
+	if (MaxBossPoise <= 0.f)
+	{
+		return false;
+	}
+
+	const float CurrentBossPoise = TargetASC->GetNumericAttribute(UWarriorAttributeSet::GetCurrentBossPoiseAttribute());
+	const float NewBossPoise = FMath::Clamp(CurrentBossPoise - PoiseDamage, 0.f, MaxBossPoise);
+
+	TargetASC->SetNumericAttributeBase(UWarriorAttributeSet::GetCurrentBossPoiseAttribute(), NewBossPoise);
+	BroadcastBossPoiseChanged(InTarget, NewBossPoise, MaxBossPoise);
+
+	if (NewBossPoise > 0.f)
+	{
+		return false;
+	}
+
+	TargetASC->AddLooseGameplayTag(WarriorGameplayTags::Enemy_Status_PoiseBroken);
+	TargetASC->AddLooseGameplayTag(WarriorGameplayTags::Enemy_Status_Stunned);
+	TargetASC->CancelAbilities();
+
+	if (ACharacter* TargetCharacter = Cast<ACharacter>(InTarget))
+	{
+		if (UCharacterMovementComponent* MovementComponent = TargetCharacter->GetCharacterMovement())
+		{
+			MovementComponent->StopMovementImmediately();
+			MovementComponent->DisableMovement();
+		}
+	}
+
+	FGameplayEventData EventData;
+	EventData.EventTag = WarriorGameplayTags::Enemy_Event_PoiseBreak;
+	EventData.Instigator = InInstigator;
+	EventData.Target = InTarget;
+	EventData.EventMagnitude = PoiseDamage;
+
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+		InTarget,
+		WarriorGameplayTags::Enemy_Event_PoiseBreak,
+		EventData);
+
+	if (UWorld* World = InTarget->GetWorld())
+	{
+		FTimerHandle PoiseRecoveryTimer;
+		TWeakObjectPtr<AActor> WeakTarget = InTarget;
+		TWeakObjectPtr<UWarriorAbilitySystemComponent> WeakTargetASC = TargetASC;
+		const float RecoveryDelay = FMath::Max(0.f, StunDuration);
+
+		World->GetTimerManager().SetTimer(PoiseRecoveryTimer, [WeakTarget, WeakTargetASC, MaxBossPoise]()
+		{
+			if (!WeakTarget.IsValid() || !WeakTargetASC.IsValid())
+			{
+				return;
+			}
+
+			if (WeakTargetASC->HasMatchingGameplayTag(WarriorGameplayTags::Shared_Status_Death))
+			{
+				return;
+			}
+
+			WeakTargetASC->RemoveLooseGameplayTag(WarriorGameplayTags::Enemy_Status_PoiseBroken);
+			WeakTargetASC->RemoveLooseGameplayTag(WarriorGameplayTags::Enemy_Status_Stunned);
+			WeakTargetASC->SetNumericAttributeBase(UWarriorAttributeSet::GetCurrentBossPoiseAttribute(), MaxBossPoise);
+			BroadcastBossPoiseChanged(WeakTarget.Get(), MaxBossPoise, MaxBossPoise);
+
+			if (ACharacter* TargetCharacter = Cast<ACharacter>(WeakTarget.Get()))
+			{
+				if (UCharacterMovementComponent* MovementComponent = TargetCharacter->GetCharacterMovement())
+				{
+					MovementComponent->SetMovementMode(MOVE_Walking);
+				}
+			}
+		}, RecoveryDelay, false);
+	}
+
+	return true;
 }
 
 bool UWarriorFunctionLibrary::ApplyGameplayEffectHandleToTarget(AActor* Instigator, AActor* TargetActor,

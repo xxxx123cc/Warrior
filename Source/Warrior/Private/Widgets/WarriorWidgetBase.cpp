@@ -7,6 +7,7 @@
 #include "Components/UI/HeroUIComponent.h"
 #include "Warrior/Public/Interfaces/PawnUIInterface.h"
 #include "Warrior/Public/Components/UI/PawnUIComponent.h"
+#include "Characters/WarriorBaseCharacter.h"
 #include "Characters/WarriorHeroCharacter.h"
 #include "AbilitySystem/WarriorAttributeSet.h"
 
@@ -47,6 +48,7 @@ void UWarriorWidgetBase::RefreshHeroUIComponent()
 				{
 					const float MaxHealth = AS->GetMaxHealth();
 					const float MaxRage = AS->GetMaxRage();
+					const float MaxBlockValue = AS->GetMaxBlockValue();
 
 					if (MaxHealth > 0.f)
 					{
@@ -57,6 +59,11 @@ void UWarriorWidgetBase::RefreshHeroUIComponent()
 					{
 						HeroUIComponent->OnCurrentRageChanged.Broadcast(
 							AS->GetCurrentRage() / MaxRage);
+					}
+					if (MaxBlockValue > 0.f)
+					{
+						HeroUIComponent->OnCurrentBlockValueChanged.Broadcast(
+							AS->GetCurrentBlockValue() / MaxBlockValue);
 					}
 				}
 			}
@@ -73,6 +80,26 @@ void UWarriorWidgetBase::InitEnemyWidget(AActor* EnemyActor)
 		if (UEnemyUIComponent* EnemyUIComponent = PawnUIInterface->GetEnemyUIComponent())
 		{
 			BP_OnOwningEnemyUIComponentInitialized(EnemyUIComponent);
+
+			if (AWarriorBaseCharacter* EnemyCharacter = Cast<AWarriorBaseCharacter>(EnemyActor))
+			{
+				if (const UWarriorAttributeSet* AS = EnemyCharacter->GetWarriorAttributeSet())
+				{
+					const float MaxHealth = AS->GetMaxHealth();
+					const float MaxBossPoise = AS->GetMaxBossPoise();
+
+					if (MaxHealth > 0.f)
+					{
+						EnemyUIComponent->OnCurrentHealthChanged.Broadcast(
+							AS->GetCurrentHealth() / MaxHealth);
+					}
+					if (MaxBossPoise > 0.f)
+					{
+						EnemyUIComponent->OnCurrentBossPoiseChanged.Broadcast(
+							AS->GetCurrentBossPoise() / MaxBossPoise);
+					}
+				}
+			}
 		}
 	}
 }

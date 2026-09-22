@@ -5,6 +5,8 @@
 #include "Items/Weapons/WarriorWeaponBase.h"
 #include "Components/BoxComponent.h"
 #include "WarriorDebugHelper.h"
+#include "WarriorFunctionLibrary.h"
+#include "WarriorGameplayTags.h"
 void UPawnCombatComponent::RegisterSpawnedWeapon(FGameplayTag InWeaponTagToRegister,
 	AWarriorWeaponBase* InWeaponToRegister, bool bRegisterEquippedWeapon)
 {//检查武器标签不存在于Map里，检查要生成的武器是否有效-4.1
@@ -95,6 +97,18 @@ void UPawnCombatComponent::OnWeaponEndOverlapTarget(AActor* EndOverlapActor)
 		OverlapActors.RemoveSingleSwap(EndOverlapActor);
 	}
 	
+}
+
+bool UPawnCombatComponent::ShouldIgnoreHitDueToWeaponClash(AActor* HitActor) const
+{
+	APawn* OwningPawn = Cast<APawn>(GetOwner());
+	if (!OwningPawn || !HitActor)
+	{
+		return true;
+	}
+
+	return UWarriorFunctionLibrary::NativeDoesActorHaveTag(OwningPawn, WarriorGameplayTags::Shared_Status_Clashing) ||
+		UWarriorFunctionLibrary::NativeDoesActorHaveTag(HitActor, WarriorGameplayTags::Shared_Status_Clashing);
 }
 
 void UPawnCombatComponent::ToggleCurrentWeaponCollision(bool bEnableCollision, EToggleDamageType ToggleDamageType)

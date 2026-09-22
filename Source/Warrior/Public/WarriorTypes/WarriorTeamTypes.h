@@ -40,6 +40,12 @@ struct FWarriorTeamMemberState
 	float MaxRage = 0.f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Team")
+	float CurrentBlockValue = 0.f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Team")
+	float MaxBlockValue = 0.f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Team")
 	float AttackPower = 0.f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Team")

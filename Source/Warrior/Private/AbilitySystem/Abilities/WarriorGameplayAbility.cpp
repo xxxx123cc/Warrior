@@ -5,7 +5,10 @@
 
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AbilitySystem/WarriorAbilitySystemComponent.h"
+#include "AbilitySystem/WarriorAttributeSet.h"
 #include "Components/Combat/PawnCombatComponent.h"
+#include "Components/UI/PawnUIComponent.h"
+#include "Interfaces/PawnUIInterface.h"
 #include "WarriorDebugHelper.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "WarriorFunctionLibrary.h"
@@ -239,6 +242,16 @@ void UWarriorGameplayAbility::ApplyGameplayEffectSpecHandleToHitResults(
 					FGameplayEventData EventData;
 					EventData.Instigator = OwningPawn;
 					EventData.Target = TargetPawn;
+
+					if (UWarriorAbilitySystemComponent* TargetWarriorASC =
+						Cast<UWarriorAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetPawn)))
+					{
+						UWarriorFunctionLibrary::ApplyBossPoiseDamage(
+							TargetPawn,
+							OwningPawn,
+							TargetWarriorASC->GetBossPoiseDamageOnHit(),
+							TargetWarriorASC->GetBossPoiseBreakStunDuration());
+					}
 					
 					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetPawn, WarriorGameplayTags::Shared_Ability_HitReact, EventData);
 					
@@ -249,6 +262,40 @@ void UWarriorGameplayAbility::ApplyGameplayEffectSpecHandleToHitResults(
 	}
 	
 	
+}
+
+void UWarriorGameplayAbility::BroadcastInitialCurrentHealth()
+{
+	AActor* AvatarActor = GetAvatarActorFromActorInfo();
+	if (!AvatarActor)
+	{
+		return;
+	}
+
+	IPawnUIInterface* PawnUIInterface = Cast<IPawnUIInterface>(AvatarActor);
+	if (!PawnUIInterface)
+	{
+		return;
+	}
+
+	UPawnUIComponent* PawnUIComponent = PawnUIInterface->GetPawnUIComponent();
+	const UAbilitySystemComponent* AbilitySystemComponent = GetAbilitySystemComponentFromActorInfo();
+	if (!PawnUIComponent || !AbilitySystemComponent)
+	{
+		return;
+	}
+
+	const float MaxHealth = AbilitySystemComponent->GetNumericAttribute(UWarriorAttributeSet::GetMaxHealthAttribute());
+	if (MaxHealth <= 0.f)
+	{
+		return;
+	}
+
+	const float CurrentHealth = FMath::Clamp(
+		AbilitySystemComponent->GetNumericAttribute(UWarriorAttributeSet::GetCurrentHealthAttribute()),
+		0.f,
+		MaxHealth);
+	PawnUIComponent->OnCurrentHealthChanged.Broadcast(CurrentHealth / MaxHealth);
 }
 
 // 标记连击输入已到达，供连击窗口逻辑在稍后消费。

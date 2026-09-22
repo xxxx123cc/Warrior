@@ -8,6 +8,7 @@
 #include "WarriorGameplayTags.h"
 #include "Chaos/Deformable/MuscleActivationConstraints.h"
 #include "Components/UI/HeroUIComponent.h"
+#include "Components/UI/EnemyUIComponent.h"
 #include "Interfaces/PawnUIInterface.h"
 #include "Components/UI/PawnUIComponent.h"
 //初始化数值
@@ -17,6 +18,10 @@ UWarriorAttributeSet::UWarriorAttributeSet()
 	InitMaxHealth(1.f);
 	InitMaxRage(1.f);
 	InitCurrentRage(1.f);
+	InitMaxBlockValue(7.f);
+	InitCurrentBlockValue(7.f);
+	InitMaxBossPoise(100.f);
+	InitCurrentBossPoise(100.f);
 	InitAttackPower(1.f);
 	InitDefensePower(1.f);
 }
@@ -67,6 +72,40 @@ void UWarriorAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffec
 		}
 		
 	}  
+
+	if (Data.EvaluatedData.Attribute == GetCurrentBlockValueAttribute() ||
+		Data.EvaluatedData.Attribute == GetMaxBlockValueAttribute())
+	{
+		const float MaxBlockAmount = GetMaxBlockValue();
+		const float NewCurrentBlockValue = MaxBlockAmount > 0.f
+			? FMath::Clamp(GetCurrentBlockValue(), 0.f, MaxBlockAmount)
+			: 0.f;
+
+		SetCurrentBlockValue(NewCurrentBlockValue);
+
+		if (UHeroUIComponent* HeroUIComponent = CachedPawnUIInterface->GetHeroUIComponent())
+		{
+			HeroUIComponent->OnCurrentBlockValueChanged.Broadcast(
+				MaxBlockAmount > 0.f ? NewCurrentBlockValue / MaxBlockAmount : 0.f);
+		}
+	}
+
+	if (Data.EvaluatedData.Attribute == GetCurrentBossPoiseAttribute() ||
+		Data.EvaluatedData.Attribute == GetMaxBossPoiseAttribute())
+	{
+		const float MaxBossPoiseAmount = GetMaxBossPoise();
+		const float NewCurrentBossPoise = MaxBossPoiseAmount > 0.f
+			? FMath::Clamp(GetCurrentBossPoise(), 0.f, MaxBossPoiseAmount)
+			: 0.f;
+
+		SetCurrentBossPoise(NewCurrentBossPoise);
+
+		if (UEnemyUIComponent* EnemyUIComponent = CachedPawnUIInterface->GetEnemyUIComponent())
+		{
+			EnemyUIComponent->OnCurrentBossPoiseChanged.Broadcast(
+				MaxBossPoiseAmount > 0.f ? NewCurrentBossPoise / MaxBossPoiseAmount : 0.f);
+		}
+	}
 	
 	if ( Data.EvaluatedData.Attribute == GetDamageTakenAttribute())
 	{

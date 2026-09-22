@@ -19,5 +19,9 @@ public:
 	virtual void OnWeaponEndOverlapTarget (AActor* EndOverlapActor) override;
 	
 	virtual void ToggleCurrentHandCollision(bool bEnableCollision,EToggleDamageType ToggleDamageType=EToggleDamageType::CurrentEquippedWeapon) override;
+
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Warrior|Combat|Block", meta=(ClampMin="0.0"))
+	float SuccessfulBlockCost = 1.f;
 	
 };

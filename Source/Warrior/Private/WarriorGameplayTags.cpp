@@ -66,6 +66,7 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Unequip_Axe,"Player.Event.Unequip.Axe");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_HitPause,"Player.Event.HitPause");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SuccessBlock,"Player.Event.SuccessBlock");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Event_GuardBreak,"Player.Event.GuardBreak");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SuccessDodge,"Player.Event.SuccessDodge");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SwitchTarget_Right,"Player.Event.SwitchTarget.Right");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SwitchTarget_Left,"Player.Event.SwitchTarget.Left");
@@ -83,6 +84,7 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Rolling,"Player.Status.Rolling");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_DodgeIFrame,"Player.Status.DodgeIFrame");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Blocking,"Player.Status.Blocking");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_GuardBroken,"Player.Status.GuardBroken");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_TargetLock,"Player.Status.TargetLock");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Rage_Activating,"Player.Status.Rage.Activating");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Rage_Active,"Player.Status.Rage.Active");
@@ -98,6 +100,7 @@ namespace WarriorGameplayTags
 	/**敌人标签**/
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Weapon,"Enemy.Weapon");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Event_SpawnEnemies,"Enemy.Event.SpawnEnemies");
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Event_PoiseBreak,"Enemy.Event.PoiseBreak");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_SpawnEnemies,"Enemy.Ability.SpawnEnemies");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Ranged,"Enemy.Ability.Ranged");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Melee,"Enemy.Ability.Melee");
@@ -105,6 +108,8 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_Strafing,"Enemy.Status.Strafing");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_UnderAttack,"Enemy.Status.UnderAttack");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_UnBlockable,"Enemy.Status.UnBlockable");
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_Stunned,"Enemy.Status.Stunned");
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_PoiseBroken,"Enemy.Status.PoiseBroken");
 	//共享标签
 	//造成攻击
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Event_MeleeHit,"Shared.Event.MeleeHit");

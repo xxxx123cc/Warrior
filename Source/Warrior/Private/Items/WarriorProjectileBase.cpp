@@ -6,6 +6,7 @@
 #include "Components/BoxComponent.h"
 #include "NiagaraComponent.h"
 #include "WarriorFunctionLibrary.h"
+#include "AbilitySystem/WarriorAbilitySystemComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Warrior/Public/WarriorGameplayTags.h"
 #include "AbilitySystemBlueprintLibrary.h"
@@ -86,7 +87,7 @@ void AWarriorProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, 
 	}
 	if (bIsValidBlock)
 	{
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitedPawn,WarriorGameplayTags::Player_Event_SuccessBlock,Data);
+		UWarriorFunctionLibrary::HandleSuccessfulBlock(HitedPawn, this, SuccessfulBlockCost, Data);
 		
 	}
 	else
@@ -141,6 +142,16 @@ void AWarriorProjectileBase::HandleApplyProjectileEffect(APawn* InHitPawn,const 
 	
 	if (bWasApplied)
 	{
+		if (UWarriorAbilitySystemComponent* TargetWarriorASC =
+			Cast<UWarriorAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InHitPawn)))
+		{
+			UWarriorFunctionLibrary::ApplyBossPoiseDamage(
+				InHitPawn,
+				GetInstigator(),
+				TargetWarriorASC->GetBossPoiseDamageOnHit(),
+				TargetWarriorASC->GetBossPoiseBreakStunDuration());
+		}
+
 		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(InHitPawn,WarriorGameplayTags::Shared_Event_HitReact,Data);
 	}
 }

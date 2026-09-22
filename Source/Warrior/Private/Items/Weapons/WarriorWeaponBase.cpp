@@ -189,6 +189,12 @@ void AWarriorWeaponBase::NotifyOwnerWeaponClash(AWarriorWeaponBase* OtherWeapon,
 		OwnerPawn,
 		WarriorGameplayTags::Shared_Event_WeaponClash,
 		EventData);
+
+	UWarriorFunctionLibrary::ApplyBossPoiseDamage(
+		OwnerPawn,
+		OtherOwnerPawn,
+		WarriorASC->GetBossPoiseDamageOnWeaponClash(),
+		WarriorASC->GetBossPoiseBreakStunDuration());
 }
 
 APawn* AWarriorWeaponBase::GetWeaponOwningPawn() const

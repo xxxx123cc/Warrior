@@ -18,6 +18,11 @@ void UEnemyCombatComponent::OnHitTargetActor(AActor* HitActor)
 		return;
 	}
 	OverlapActors.AddUnique(HitActor);
+
+	if (ShouldIgnoreHitDueToWeaponClash(HitActor))
+	{
+		return;
+	}
 	
 	 bool bIsValidBlock=false;
 	const bool bIsPlayerBlocking =UWarriorFunctionLibrary::NativeDoesActorHaveTag(HitActor,WarriorGameplayTags::Player_Status_Blocking);
@@ -49,7 +54,7 @@ void UEnemyCombatComponent::OnHitTargetActor(AActor* HitActor)
 	}
 	if (bIsValidBlock)
 	{
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor,WarriorGameplayTags::Player_Event_SuccessBlock,EventData);
+		UWarriorFunctionLibrary::HandleSuccessfulBlock(HitActor, GetOwningPawn(), SuccessfulBlockCost, EventData);
 	}
 	else 
 		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetOwningPawn(),WarriorGameplayTags::Shared_Event_MeleeHit,EventData);

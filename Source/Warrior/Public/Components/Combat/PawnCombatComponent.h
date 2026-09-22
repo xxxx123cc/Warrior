@@ -51,6 +51,8 @@ protected:
 	virtual void ToggleCurrentWeaponCollision(bool bEnableCollision,EToggleDamageType ToggleDamageType=EToggleDamageType::CurrentEquippedWeapon);
 	
 	virtual void ToggleCurrentHandCollision(bool bEnableCollision,EToggleDamageType ToggleDamageType=EToggleDamageType::CurrentEquippedWeapon);
+
+	bool ShouldIgnoreHitDueToWeaponClash(AActor* HitActor) const;
 	
 	TArray<AActor*> OverlapActors;
 	

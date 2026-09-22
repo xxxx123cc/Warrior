@@ -41,6 +41,22 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category="Rage")
 	FGameplayAttributeData MaxRage;
 	ATTRIBUTE_ACCESSORS(UWarriorAttributeSet, MaxRage);
+
+	UPROPERTY(BlueprintReadOnly, Category="Block")
+	FGameplayAttributeData CurrentBlockValue;
+	ATTRIBUTE_ACCESSORS(UWarriorAttributeSet, CurrentBlockValue);
+
+	UPROPERTY(BlueprintReadOnly, Category="Block")
+	FGameplayAttributeData MaxBlockValue;
+	ATTRIBUTE_ACCESSORS(UWarriorAttributeSet, MaxBlockValue);
+
+	UPROPERTY(BlueprintReadOnly, Category="BossPoise")
+	FGameplayAttributeData CurrentBossPoise;
+	ATTRIBUTE_ACCESSORS(UWarriorAttributeSet, CurrentBossPoise);
+
+	UPROPERTY(BlueprintReadOnly, Category="BossPoise")
+	FGameplayAttributeData MaxBossPoise;
+	ATTRIBUTE_ACCESSORS(UWarriorAttributeSet, MaxBossPoise);
 	
 	UPROPERTY(BlueprintReadOnly, Category="Damage")
 	FGameplayAttributeData AttackPower;

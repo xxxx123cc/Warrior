@@ -4,9 +4,28 @@
 
 #include "AbilitySystem/Abilities/WarriorGameplayAbility.h"
 #include "AbilitySystem/Abilities/WarriorHeroGameplayAbility.h"
+#include "AbilitySystem/WarriorAttributeSet.h"
+#include "Components/UI/HeroUIComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Interfaces/PawnUIInterface.h"
 #include "WarriorGameplayTags.h"
+
+UWarriorAbilitySystemComponent::UWarriorAbilitySystemComponent()
+{
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = true;
+}
+
+void UWarriorAbilitySystemComponent::TickComponent(
+	float DeltaTime,
+	ELevelTick TickType,
+	FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	RegenerateBlockValue(DeltaTime);
+}
 
 void UWarriorAbilitySystemComponent::OnAbilityInputPressed(const FGameplayTag& InputTag)
 {
@@ -260,4 +279,80 @@ bool UWarriorAbilitySystemComponent::TryActivateAbilityByTag(FGameplayTag Abilit
 	}
 
 	return false;
+}
+
+void UWarriorAbilitySystemComponent::NotifyBlockValueConsumed(bool bWasGuardBroken)
+{
+	if (const UWorld* World = GetWorld())
+	{
+		BlockValueRegenBlockedUntilTime =
+			World->GetTimeSeconds() + (bWasGuardBroken ? GuardBreakBlockValueRegenDelay : BlockValueRegenDelay);
+	}
+}
+
+void UWarriorAbilitySystemComponent::RegenerateBlockValue(float DeltaTime)
+{
+	if (DeltaTime <= 0.f || BlockValueRegenRate <= 0.f)
+	{
+		return;
+	}
+
+	if (!bRegenerateBlockValueWhileBlocking &&
+		HasMatchingGameplayTag(WarriorGameplayTags::Player_Status_Blocking))
+	{
+		return;
+	}
+
+	const UWorld* World = GetWorld();
+	if (World && World->GetTimeSeconds() < BlockValueRegenBlockedUntilTime)
+	{
+		return;
+	}
+
+	const float MaxBlockAmount = GetNumericAttribute(UWarriorAttributeSet::GetMaxBlockValueAttribute());
+	if (MaxBlockAmount <= 0.f)
+	{
+		return;
+	}
+
+	const float CurrentBlockAmount = GetNumericAttribute(UWarriorAttributeSet::GetCurrentBlockValueAttribute());
+	if (CurrentBlockAmount >= MaxBlockAmount)
+	{
+		return;
+	}
+
+	const float NewBlockAmount = FMath::Clamp(
+		CurrentBlockAmount + BlockValueRegenRate * DeltaTime,
+		0.f,
+		MaxBlockAmount);
+
+	SetNumericAttributeBase(UWarriorAttributeSet::GetCurrentBlockValueAttribute(), NewBlockAmount);
+	BroadcastCurrentBlockValue(NewBlockAmount, MaxBlockAmount);
+
+	if (NewBlockAmount >= MaxBlockAmount &&
+		HasMatchingGameplayTag(WarriorGameplayTags::Player_Status_GuardBroken))
+	{
+		RemoveLooseGameplayTag(WarriorGameplayTags::Player_Status_GuardBroken);
+	}
+}
+
+void UWarriorAbilitySystemComponent::BroadcastCurrentBlockValue(float CurrentBlockValue, float MaxBlockValue) const
+{
+	AActor* AvatarActorPtr = GetAvatarActor();
+	if (!AvatarActorPtr)
+	{
+		return;
+	}
+
+	IPawnUIInterface* PawnUIInterface = Cast<IPawnUIInterface>(AvatarActorPtr);
+	if (!PawnUIInterface)
+	{
+		return;
+	}
+
+	if (UHeroUIComponent* HeroUIComponent = PawnUIInterface->GetHeroUIComponent())
+	{
+		HeroUIComponent->OnCurrentBlockValueChanged.Broadcast(
+			MaxBlockValue > 0.f ? CurrentBlockValue / MaxBlockValue : 0.f);
+	}
 }

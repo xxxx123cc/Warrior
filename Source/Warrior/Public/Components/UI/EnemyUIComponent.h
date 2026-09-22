@@ -16,6 +16,9 @@ class WARRIOR_API UEnemyUIComponent : public UPawnUIComponent
 	GENERATED_BODY()
 	
 public:
+	UPROPERTY(BlueprintAssignable, Category="UI")
+	FOnPercentChangedDelegate OnCurrentBossPoiseChanged;
+
 	UFUNCTION(BlueprintCallable)
 	void RegisterEnemyDrawWidget(UWarriorWidgetBase* InWidgetToRegister);
 	UFUNCTION(BlueprintCallable)

@@ -43,6 +43,9 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category="Projectile")
 	EProjectileDamagePolicy ProjectileDamagePolicy = EProjectileDamagePolicy::OnHit;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Projectile|Block", meta=(ClampMin="0.0"))
+	float SuccessfulBlockCost = 1.f;
 	
 	UPROPERTY(BlueprintReadOnly,Category="Projectile",meta = (ExposeOnSpawn = "true"))
 	FGameplayEffectSpecHandle ProjectileDamageHandle;

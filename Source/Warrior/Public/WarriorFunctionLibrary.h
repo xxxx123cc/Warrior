@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Abilities/GameplayAbilityTypes.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "WarriorTypes/WarriorEnumTypes.h"
 #include "WarriorFunctionLibrary.generated.h"
@@ -84,6 +85,15 @@ public:
 
 	UFUNCTION(BlueprintPure,Category="Warrior|FunctionLibrary")
 	static bool IsActorInDodgeIFrame(AActor* InActor);
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|FunctionLibrary|Block")
+	static bool HandleSuccessfulBlock(AActor* InBlocker, AActor* InAttacker, float BlockCost, FGameplayEventData EventData);
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|FunctionLibrary|Block")
+	static void ResetBlockValueToMax(AActor* InActor, bool bRemoveGuardBrokenStatus = true);
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|FunctionLibrary|BossPoise")
+	static bool ApplyBossPoiseDamage(AActor* InTarget, AActor* InInstigator, float PoiseDamage, float StunDuration);
 
 	UFUNCTION(BlueprintCallable,Category="Warrior|FunctionLibrary")
 	static bool ApplyGameplayEffectHandleToTarget(AActor* Instigator,AActor* TargetActor,const FGameplayEffectSpecHandle&InSpecHandle);

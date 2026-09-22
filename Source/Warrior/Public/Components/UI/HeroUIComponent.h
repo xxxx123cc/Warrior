@@ -34,6 +34,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="UI")
 	FOnPercentChangedDelegate OnCurrentRageChanged;
 
+	UPROPERTY(BlueprintAssignable, Category="UI")
+	FOnPercentChangedDelegate OnCurrentBlockValueChanged;
+
 	UPROPERTY(BlueprintCallable, BlueprintAssignable, Category="UI")
 	FOnAbilityIconSlotUpdate OnAbilityIconSlotUpdate;
 

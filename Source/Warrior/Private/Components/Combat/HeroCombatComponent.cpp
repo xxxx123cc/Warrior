@@ -39,6 +39,12 @@ void UHeroCombatComponent::OnHitTargetActor(AActor* HitActor)
 		return;
 	}
 	OverlapActors.AddUnique(HitActor);
+
+	if (ShouldIgnoreHitDueToWeaponClash(HitActor))
+	{
+		return;
+	}
+
 	FGameplayEventData EventData;
 	EventData.Instigator = GetOwningPawn();
 	EventData.Target = HitActor;

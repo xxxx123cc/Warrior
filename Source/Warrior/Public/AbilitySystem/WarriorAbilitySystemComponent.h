@@ -15,6 +15,10 @@ class WARRIOR_API UWarriorAbilitySystemComponent : public UAbilitySystemComponen
 {
 	GENERATED_BODY()
 public:
+	UWarriorAbilitySystemComponent();
+
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
 	void OnAbilityInputPressed(const FGameplayTag& InputTag);
 	void OnAbilityInputReleased(const FGameplayTag& InputTag);
 
@@ -39,6 +43,38 @@ public:
 	UFUNCTION(BlueprintCallable,Category="Warroir|Ability")
 	bool TryActivateAbilityByTag(FGameplayTag AbilityTagToActivate);
 
+	void NotifyBlockValueConsumed(bool bWasGuardBroken);
+
+	float GetBossPoiseDamageOnHit() const { return BossPoiseDamageOnHit; }
+	float GetBossPoiseDamageOnWeaponClash() const { return BossPoiseDamageOnWeaponClash; }
+	float GetBossPoiseBreakStunDuration() const { return BossPoiseBreakStunDuration; }
+
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Warroir|Block", meta=(ClampMin="0.0"))
+	float BlockValueRegenRate = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Warroir|Block", meta=(ClampMin="0.0"))
+	float BlockValueRegenDelay = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Warroir|Block", meta=(ClampMin="0.0"))
+	float GuardBreakBlockValueRegenDelay = 2.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Warroir|Block")
+	bool bRegenerateBlockValueWhileBlocking = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Warroir|BossPoise", meta=(ClampMin="0.0"))
+	float BossPoiseDamageOnHit = 20.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Warroir|BossPoise", meta=(ClampMin="0.0"))
+	float BossPoiseDamageOnWeaponClash = 40.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Warroir|BossPoise", meta=(ClampMin="0.0"))
+	float BossPoiseBreakStunDuration = 3.f;
+
 private:
 	bool TryHandleAbilityInput(const FGameplayTag& InputTag);
+	void RegenerateBlockValue(float DeltaTime);
+	void BroadcastCurrentBlockValue(float CurrentBlockValue, float MaxBlockValue) const;
+
+	float BlockValueRegenBlockedUntilTime = 0.f;
 };
