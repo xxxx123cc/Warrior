@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameplayEffectTypes.h"
 #include "GameFramework/Actor.h"
+#include "WarriorTypes/WarriorStructTypes.h"
 #include "WarriorProjectileBase.generated.h"
 
 struct FGameplayEventData;
@@ -46,6 +47,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Projectile|Block", meta=(ClampMin="0.0"))
 	float SuccessfulBlockCost = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Projectile|Attack")
+	FWarriorAttackImpactData DefaultAttackImpactData;
 	
 	UPROPERTY(BlueprintReadOnly,Category="Projectile",meta = (ExposeOnSpawn = "true"))
 	FGameplayEffectSpecHandle ProjectileDamageHandle;
@@ -60,6 +64,8 @@ protected:
 	void BP_OnSpawnProjectileHitFx(const FVector& HitLocation);
 private:
 	void HandleApplyProjectileEffect(APawn* InHitPawn,const FGameplayEventData& Data);
+	FWarriorAttackImpactData ResolveAttackImpactData() const;
+	bool TryHandleProjectileDefense(APawn* InHitPawn, FGameplayEventData& Data);
 	
 	TArray<AActor*> OverlapActors;
 

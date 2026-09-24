@@ -63,10 +63,10 @@ protected:
 	bool bRegenerateBlockValueWhileBlocking = false;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Warroir|BossPoise", meta=(ClampMin="0.0"))
-	float BossPoiseDamageOnHit = 20.f;
+	float BossPoiseDamageOnHit = 5.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Warroir|BossPoise", meta=(ClampMin="0.0"))
-	float BossPoiseDamageOnWeaponClash = 40.f;
+	float BossPoiseDamageOnWeaponClash = 10.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Warroir|BossPoise", meta=(ClampMin="0.0"))
 	float BossPoiseBreakStunDuration = 3.f;

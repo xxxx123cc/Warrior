@@ -23,8 +23,10 @@
 #include "SaveGame/WarriorSaveGame.h"
 #include "Components/UI/HeroUIComponent.h"
 #include "Components/UI/EnemyUIComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Characters/WarriorEnemyCharacter.h"
 #include "Interfaces/PawnUIInterface.h"
 #include "TimerManager.h"
 
@@ -68,6 +70,26 @@ namespace
 			EnemyUIComponent->OnCurrentBossPoiseChanged.Broadcast(
 				MaxBossPoise > 0.f ? CurrentBossPoise / MaxBossPoise : 0.f);
 		}
+	}
+
+	bool HasAttackImpactSetByCallerMagnitude(const FGameplayEffectSpecHandle& InSpecHandle, FGameplayTag Tag)
+	{
+		return InSpecHandle.IsValid() &&
+			InSpecHandle.Data.IsValid() &&
+			InSpecHandle.Data->SetByCallerTagMagnitudes.Contains(Tag);
+	}
+
+	float GetAttackImpactSetByCallerMagnitude(
+		const FGameplayEffectSpecHandle& InSpecHandle,
+		FGameplayTag Tag,
+		float DefaultValue)
+	{
+		if (!HasAttackImpactSetByCallerMagnitude(InSpecHandle, Tag))
+		{
+			return DefaultValue;
+		}
+
+		return InSpecHandle.Data->GetSetByCallerMagnitude(Tag, false, DefaultValue);
 	}
 }
 /**
@@ -317,7 +339,6 @@ bool UWarriorFunctionLibrary::HandleSuccessfulBlock(
 
 	const float AppliedBlockCost = FMath::Max(0.f, BlockCost);
 
-	EventData.EventTag = WarriorGameplayTags::Player_Event_SuccessBlock;
 	EventData.Target = InBlocker;
 	if (!EventData.Instigator)
 	{
@@ -361,11 +382,6 @@ bool UWarriorFunctionLibrary::HandleSuccessfulBlock(
 		WarriorBlockerASC->NotifyBlockValueConsumed(bGuardBroken);
 	}
 
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
-		InBlocker,
-		WarriorGameplayTags::Player_Event_SuccessBlock,
-		EventData);
-
 	if (bGuardBroken)
 	{
 		if (UAbilitySystemComponent* BlockerASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InBlocker))
@@ -381,6 +397,14 @@ bool UWarriorFunctionLibrary::HandleSuccessfulBlock(
 			InBlocker,
 			WarriorGameplayTags::Player_Event_GuardBreak,
 			GuardBreakEventData);
+	}
+	else
+	{
+		EventData.EventTag = WarriorGameplayTags::Player_Event_SuccessBlock;
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+			InBlocker,
+			WarriorGameplayTags::Player_Event_SuccessBlock,
+			EventData);
 	}
 
 	return bGuardBroken;
@@ -424,8 +448,7 @@ bool UWarriorFunctionLibrary::ApplyBossPoiseDamage(
 		return false;
 	}
 
-	IPawnUIInterface* PawnUIInterface = Cast<IPawnUIInterface>(InTarget);
-	if (!PawnUIInterface || !PawnUIInterface->GetEnemyUIComponent())
+	if (!Cast<AWarriorEnemyCharacter>(InTarget))
 	{
 		return false;
 	}
@@ -460,8 +483,12 @@ bool UWarriorFunctionLibrary::ApplyBossPoiseDamage(
 	TargetASC->AddLooseGameplayTag(WarriorGameplayTags::Enemy_Status_Stunned);
 	TargetASC->CancelAbilities();
 
+	float PreviousAnimRootMotionTranslationScale = 1.f;
 	if (ACharacter* TargetCharacter = Cast<ACharacter>(InTarget))
 	{
+		PreviousAnimRootMotionTranslationScale = TargetCharacter->GetAnimRootMotionTranslationScale();
+		TargetCharacter->SetAnimRootMotionTranslationScale(0.f);
+
 		if (UCharacterMovementComponent* MovementComponent = TargetCharacter->GetCharacterMovement())
 		{
 			MovementComponent->StopMovementImmediately();
@@ -487,7 +514,7 @@ bool UWarriorFunctionLibrary::ApplyBossPoiseDamage(
 		TWeakObjectPtr<UWarriorAbilitySystemComponent> WeakTargetASC = TargetASC;
 		const float RecoveryDelay = FMath::Max(0.f, StunDuration);
 
-		World->GetTimerManager().SetTimer(PoiseRecoveryTimer, [WeakTarget, WeakTargetASC, MaxBossPoise]()
+		World->GetTimerManager().SetTimer(PoiseRecoveryTimer, [WeakTarget, WeakTargetASC, MaxBossPoise, PreviousAnimRootMotionTranslationScale]()
 		{
 			if (!WeakTarget.IsValid() || !WeakTargetASC.IsValid())
 			{
@@ -506,6 +533,8 @@ bool UWarriorFunctionLibrary::ApplyBossPoiseDamage(
 
 			if (ACharacter* TargetCharacter = Cast<ACharacter>(WeakTarget.Get()))
 			{
+				TargetCharacter->SetAnimRootMotionTranslationScale(PreviousAnimRootMotionTranslationScale);
+
 				if (UCharacterMovementComponent* MovementComponent = TargetCharacter->GetCharacterMovement())
 				{
 					MovementComponent->SetMovementMode(MOVE_Walking);
@@ -523,9 +552,220 @@ bool UWarriorFunctionLibrary::ApplyGameplayEffectHandleToTarget(AActor* Instigat
 	UWarriorAbilitySystemComponent* SourceASC= NativeGetWarriorAscFromActor(Instigator);
 	UWarriorAbilitySystemComponent* TargetASC = NativeGetWarriorAscFromActor(TargetActor);
 	FActiveGameplayEffectHandle ActivateGameplayEffectHandle = SourceASC->ApplyGameplayEffectSpecToTarget(*InSpecHandle.Data,TargetASC);
-	return ActivateGameplayEffectHandle.WasSuccessfullyApplied();
+
+	const float BaseDamage = InSpecHandle.Data->GetSetByCallerMagnitude(
+		WarriorGameplayTags::Shared_SetByCaller_BaseDamage,
+		false,
+		0.f);
+
+	const bool bWasApplied = ActivateGameplayEffectHandle.WasSuccessfullyApplied();
+	if (bWasApplied && BaseDamage > 0.f)
+	{
+		ApplyBossPoiseDamage(
+			TargetActor,
+			Instigator,
+			TargetASC->GetBossPoiseDamageOnHit(),
+			TargetASC->GetBossPoiseBreakStunDuration());
+
+		ApplyAttackImpactToTarget(
+			TargetActor,
+			Instigator,
+			GetAttackImpactDataFromEffectSpecHandle(InSpecHandle, FWarriorAttackImpactData()));
+	}
+
+	return bWasApplied;
 	
 	
+}
+
+void UWarriorFunctionLibrary::SetAttackImpactDataToEffectSpecHandle(
+	FGameplayEffectSpecHandle& InOutSpecHandle,
+	const FWarriorAttackImpactData& AttackImpactData)
+{
+	if (!InOutSpecHandle.IsValid() || !InOutSpecHandle.Data.IsValid())
+	{
+		return;
+	}
+
+	InOutSpecHandle.Data->AppendDynamicAssetTags(AttackImpactData.HitReactTags);
+
+	InOutSpecHandle.Data->SetSetByCallerMagnitude(
+		WarriorGameplayTags::Shared_SetByCaller_Attack_CanBeBlocked,
+		AttackImpactData.bCanBeBlocked ? 1.f : 0.f);
+	InOutSpecHandle.Data->SetSetByCallerMagnitude(
+		WarriorGameplayTags::Shared_SetByCaller_Attack_CanBeDodged,
+		AttackImpactData.bCanBeDodged ? 1.f : 0.f);
+	InOutSpecHandle.Data->SetSetByCallerMagnitude(
+		WarriorGameplayTags::Shared_SetByCaller_Attack_BlockCost,
+		FMath::Max(0.f, AttackImpactData.BlockCost));
+	InOutSpecHandle.Data->SetSetByCallerMagnitude(
+		WarriorGameplayTags::Shared_SetByCaller_Attack_HorizontalLaunchStrength,
+		FMath::Max(0.f, AttackImpactData.HorizontalLaunchStrength));
+	InOutSpecHandle.Data->SetSetByCallerMagnitude(
+		WarriorGameplayTags::Shared_SetByCaller_Attack_VerticalLaunchStrength,
+		FMath::Max(0.f, AttackImpactData.VerticalLaunchStrength));
+	InOutSpecHandle.Data->SetSetByCallerMagnitude(
+		WarriorGameplayTags::Shared_SetByCaller_Attack_MeshTiltAngle,
+		FMath::Clamp(AttackImpactData.MeshTiltAngle, -89.f, 89.f));
+	InOutSpecHandle.Data->SetSetByCallerMagnitude(
+		WarriorGameplayTags::Shared_SetByCaller_Attack_MeshTiltDuration,
+		FMath::Max(0.f, AttackImpactData.MeshTiltDuration));
+}
+
+FWarriorAttackImpactData UWarriorFunctionLibrary::GetAttackImpactDataFromEffectSpecHandle(
+	const FGameplayEffectSpecHandle& InSpecHandle,
+	FWarriorAttackImpactData DefaultAttackImpactData)
+{
+	FWarriorAttackImpactData AttackImpactData = DefaultAttackImpactData;
+	if (InSpecHandle.IsValid() && InSpecHandle.Data.IsValid())
+	{
+		AttackImpactData.HitReactTags.AppendTags(InSpecHandle.Data->GetDynamicAssetTags());
+	}
+
+	AttackImpactData.bCanBeBlocked =
+		GetAttackImpactSetByCallerMagnitude(
+			InSpecHandle,
+			WarriorGameplayTags::Shared_SetByCaller_Attack_CanBeBlocked,
+			AttackImpactData.bCanBeBlocked ? 1.f : 0.f) > 0.5f;
+	AttackImpactData.bCanBeDodged =
+		GetAttackImpactSetByCallerMagnitude(
+			InSpecHandle,
+			WarriorGameplayTags::Shared_SetByCaller_Attack_CanBeDodged,
+			AttackImpactData.bCanBeDodged ? 1.f : 0.f) > 0.5f;
+	AttackImpactData.BlockCost =
+		FMath::Max(0.f, GetAttackImpactSetByCallerMagnitude(
+			InSpecHandle,
+			WarriorGameplayTags::Shared_SetByCaller_Attack_BlockCost,
+			AttackImpactData.BlockCost));
+	AttackImpactData.HorizontalLaunchStrength =
+		FMath::Max(0.f, GetAttackImpactSetByCallerMagnitude(
+			InSpecHandle,
+			WarriorGameplayTags::Shared_SetByCaller_Attack_HorizontalLaunchStrength,
+			AttackImpactData.HorizontalLaunchStrength));
+	AttackImpactData.VerticalLaunchStrength =
+		FMath::Max(0.f, GetAttackImpactSetByCallerMagnitude(
+			InSpecHandle,
+			WarriorGameplayTags::Shared_SetByCaller_Attack_VerticalLaunchStrength,
+			AttackImpactData.VerticalLaunchStrength));
+	AttackImpactData.MeshTiltAngle =
+		FMath::Clamp(GetAttackImpactSetByCallerMagnitude(
+			InSpecHandle,
+			WarriorGameplayTags::Shared_SetByCaller_Attack_MeshTiltAngle,
+			AttackImpactData.MeshTiltAngle), -89.f, 89.f);
+	AttackImpactData.MeshTiltDuration =
+		FMath::Max(0.f, GetAttackImpactSetByCallerMagnitude(
+			InSpecHandle,
+			WarriorGameplayTags::Shared_SetByCaller_Attack_MeshTiltDuration,
+			AttackImpactData.MeshTiltDuration));
+
+	return AttackImpactData;
+}
+
+bool UWarriorFunctionLibrary::ApplyAttackImpactToTarget(
+	AActor* InTarget,
+	AActor* InInstigator,
+	const FWarriorAttackImpactData& AttackImpactData)
+{
+	ACharacter* TargetCharacter = Cast<ACharacter>(InTarget);
+	if (!TargetCharacter || (!AttackImpactData.HasLaunchImpact() && !AttackImpactData.HasMeshTiltImpact()))
+	{
+		return false;
+	}
+
+	FVector ImpactDirection = FVector::ZeroVector;
+	if (InInstigator)
+	{
+		ImpactDirection = InTarget->GetActorLocation() - InInstigator->GetActorLocation();
+	}
+
+	ImpactDirection.Z = 0.f;
+	ImpactDirection = ImpactDirection.GetSafeNormal();
+	if (ImpactDirection.IsNearlyZero())
+	{
+		ImpactDirection = -TargetCharacter->GetActorForwardVector();
+		ImpactDirection.Z = 0.f;
+		ImpactDirection = ImpactDirection.GetSafeNormal();
+	}
+
+	bool bAppliedImpact = false;
+
+	if (AttackImpactData.HasLaunchImpact() && !ImpactDirection.IsNearlyZero())
+	{
+		const FVector LaunchVelocity =
+			ImpactDirection * FMath::Max(0.f, AttackImpactData.HorizontalLaunchStrength) +
+			FVector::UpVector * FMath::Max(0.f, AttackImpactData.VerticalLaunchStrength);
+
+		TargetCharacter->LaunchCharacter(
+			LaunchVelocity,
+			true,
+			AttackImpactData.VerticalLaunchStrength > 0.f);
+		bAppliedImpact = true;
+	}
+
+	if (AttackImpactData.HasMeshTiltImpact())
+	{
+		if (USkeletalMeshComponent* MeshComponent = TargetCharacter->GetMesh())
+		{
+			const FRotator OriginalRelativeRotation = MeshComponent->GetRelativeRotation();
+			const FVector LocalImpactDirection =
+				TargetCharacter->GetActorTransform().InverseTransformVectorNoScale(ImpactDirection);
+			const float TiltAngle = FMath::Clamp(AttackImpactData.MeshTiltAngle, -89.f, 89.f);
+			const FRotator TiltOffset(
+				-LocalImpactDirection.X * TiltAngle,
+				0.f,
+				LocalImpactDirection.Y * TiltAngle);
+
+			MeshComponent->SetRelativeRotation(OriginalRelativeRotation + TiltOffset);
+			bAppliedImpact = true;
+
+			if (UWorld* World = InTarget->GetWorld())
+			{
+				FTimerHandle ResetTiltTimerHandle;
+				TWeakObjectPtr<USkeletalMeshComponent> WeakMeshComponent = MeshComponent;
+
+				World->GetTimerManager().SetTimer(
+					ResetTiltTimerHandle,
+					[WeakMeshComponent, OriginalRelativeRotation]()
+					{
+						if (WeakMeshComponent.IsValid())
+						{
+							WeakMeshComponent->SetRelativeRotation(OriginalRelativeRotation);
+						}
+					},
+					FMath::Max(0.f, AttackImpactData.MeshTiltDuration),
+					false);
+			}
+		}
+	}
+
+	return bAppliedImpact;
+}
+
+void UWarriorFunctionLibrary::AddAttackImpactDataToGameplayEventData(
+	FGameplayEventData& InOutEventData,
+	const FWarriorAttackImpactData& AttackImpactData)
+{
+	InOutEventData.TargetTags.AppendTags(AttackImpactData.HitReactTags);
+
+	if (!AttackImpactData.bCanBeBlocked)
+	{
+		InOutEventData.TargetTags.AddTag(WarriorGameplayTags::Enemy_Status_UnBlockable);
+	}
+
+	if (AttackImpactData.HasLaunchImpact())
+	{
+		InOutEventData.TargetTags.AddTag(WarriorGameplayTags::Shared_Status_HitReact_Knockback);
+	}
+
+	if (AttackImpactData.VerticalLaunchStrength > 0.f)
+	{
+		InOutEventData.TargetTags.AddTag(WarriorGameplayTags::Shared_Status_HitReact_Launch);
+	}
+
+	if (AttackImpactData.HasMeshTiltImpact())
+	{
+		InOutEventData.TargetTags.AddTag(WarriorGameplayTags::Shared_Status_HitReact_Tilt);
+	}
 }
 
 float UWarriorFunctionLibrary::GetScalableFloatValueAtLevel(const FScalableFloat& InScalableFloat, float InLevel)

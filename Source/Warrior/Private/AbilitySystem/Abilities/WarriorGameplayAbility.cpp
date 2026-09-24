@@ -7,6 +7,7 @@
 #include "AbilitySystem/WarriorAbilitySystemComponent.h"
 #include "AbilitySystem/WarriorAttributeSet.h"
 #include "Components/Combat/PawnCombatComponent.h"
+#include "Components/UI/EnemyUIComponent.h"
 #include "Components/UI/PawnUIComponent.h"
 #include "Interfaces/PawnUIInterface.h"
 #include "WarriorDebugHelper.h"
@@ -22,12 +23,21 @@ void UWarriorGameplayAbility::ActivateAbility(
 	const FGameplayEventData* TriggerEventData)
 {
 	bMoveCancelBoundForCurrentActivation = false;
+	bDodgeCancelBoundForCurrentActivation = false;
 	MoveCancelEventTask = nullptr;
+	DodgeCancelEventTask = nullptr;
 
-	if (ShouldUseMoveCancelForActivation(Handle, ActorInfo))
+	const bool bShouldUseMoveCancelForActivation = ShouldUseMoveCancelForActivation(Handle, ActorInfo);
+	const bool bShouldUseDodgeCancelForActivation = ShouldUseDodgeCancelForActivation(Handle, ActorInfo);
+	if (bShouldUseMoveCancelForActivation)
 	{
 		AddAttackMoveCancelTags(ActorInfo);
 		StartMoveCancelListener(ActorInfo);
+	}
+
+	if (bShouldUseDodgeCancelForActivation)
+	{
+		StartDodgeCancelListener(ActorInfo);
 	}
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
@@ -55,6 +65,14 @@ void UWarriorGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle
 		RemoveAttackMoveCancelTags(ActorInfo);
 		MoveCancelEventTask = nullptr;
 		bMoveCancelBoundForCurrentActivation = false;
+	}
+
+	if (bDodgeCancelBoundForCurrentActivation)
+	{
+		RemoveDodgeCancelTag(ActorInfo);
+
+		DodgeCancelEventTask = nullptr;
+		bDodgeCancelBoundForCurrentActivation = false;
 	}
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
@@ -95,6 +113,30 @@ void UWarriorGameplayAbility::StartMoveCancelListener(const FGameplayAbilityActo
 	bMoveCancelBoundForCurrentActivation = true;
 }
 
+void UWarriorGameplayAbility::StartDodgeCancelListener(const FGameplayAbilityActorInfo* ActorInfo)
+{
+	if (!ActorInfo || !ActorInfo->AvatarActor.IsValid())
+	{
+		return;
+	}
+
+	DodgeCancelEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
+		this,
+		WarriorGameplayTags::Player_Event_DodgeCancel,
+		ActorInfo->AvatarActor.Get(),
+		true,
+		true);
+
+	if (!DodgeCancelEventTask)
+	{
+		return;
+	}
+
+	DodgeCancelEventTask->EventReceived.AddDynamic(this, &ThisClass::OnDodgeCancelEventReceived);
+	DodgeCancelEventTask->ReadyForActivation();
+	bDodgeCancelBoundForCurrentActivation = true;
+}
+
 bool UWarriorGameplayAbility::ShouldUseMoveCancelForActivation(
 	const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo) const
@@ -117,8 +159,16 @@ bool UWarriorGameplayAbility::ShouldUseMoveCancelForActivation(
 	}
 
 	const FGameplayTagContainer& AssetAbilityTags = GetAssetTags();
-	return AssetAbilityTags.HasTagExact(WarriorGameplayTags::Player_Ability_Attack_Light_Axe) ||
+	return AssetAbilityTags.HasTag(WarriorGameplayTags::Player_Ability_Attack) ||
+		AssetAbilityTags.HasTagExact(WarriorGameplayTags::Player_Ability_Attack_Light_Axe) ||
 		AssetAbilityTags.HasTagExact(WarriorGameplayTags::Player_Ability_Attack_Heavy_Axe);
+}
+
+bool UWarriorGameplayAbility::ShouldUseDodgeCancelForActivation(
+	const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo) const
+{
+	return bEnableDodgeCancel || ShouldUseMoveCancelForActivation(Handle, ActorInfo);
 }
 
 bool UWarriorGameplayAbility::IsAttackInputTag(FGameplayTag InputTag)
@@ -152,7 +202,20 @@ void UWarriorGameplayAbility::RemoveAttackMoveCancelTags(const FGameplayAbilityA
 			WarriorGameplayTags::Player_Status_CanMoveCancel);
 		UWarriorFunctionLibrary::RemoveGamePlayTagFromActorIfAny(
 			ActorInfo->AvatarActor.Get(),
+			WarriorGameplayTags::Player_Status_CanDodgeCancel);
+		UWarriorFunctionLibrary::RemoveGamePlayTagFromActorIfAny(
+			ActorInfo->AvatarActor.Get(),
 			WarriorGameplayTags::Player_Status_Attacking);
+	}
+}
+
+void UWarriorGameplayAbility::RemoveDodgeCancelTag(const FGameplayAbilityActorInfo* ActorInfo) const
+{
+	if (ActorInfo && ActorInfo->AvatarActor.IsValid())
+	{
+		UWarriorFunctionLibrary::RemoveGamePlayTagFromActorIfAny(
+			ActorInfo->AvatarActor.Get(),
+			WarriorGameplayTags::Player_Status_CanDodgeCancel);
 	}
 }
 
@@ -175,6 +238,34 @@ void UWarriorGameplayAbility::OnMoveCancelEventReceived(FGameplayEventData Paylo
 		WarriorGameplayTags::Player_Status_CanMoveCancel);
 
 	MontageStop(MoveCancelMontageBlendOutTime);
+	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, true);
+}
+
+void UWarriorGameplayAbility::OnDodgeCancelEventReceived(FGameplayEventData Payload)
+{
+	if (!bDodgeCancelBoundForCurrentActivation)
+	{
+		return;
+	}
+
+	AActor* AvatarActor = GetAvatarActorFromActorInfo();
+	if (!AvatarActor ||
+		!UWarriorFunctionLibrary::NativeDoesActorHaveTag(AvatarActor, WarriorGameplayTags::Player_Status_CanDodgeCancel))
+	{
+		return;
+	}
+
+	UWarriorFunctionLibrary::RemoveGamePlayTagFromActorIfAny(
+		AvatarActor,
+		WarriorGameplayTags::Player_Status_CanDodgeCancel);
+	if (bMoveCancelBoundForCurrentActivation)
+	{
+		UWarriorFunctionLibrary::RemoveGamePlayTagFromActorIfAny(
+			AvatarActor,
+			WarriorGameplayTags::Player_Status_Attacking);
+	}
+
+	MontageStop(DodgeCancelMontageBlendOutTime);
 	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, true);
 }
 
@@ -206,6 +297,31 @@ FActiveGameplayEffectHandle UWarriorGameplayAbility::NativeApplyEffectSpecHandle
 	FActiveGameplayEffectHandle EffectHandle = GetWarriorASCFromActorInfo()->ApplyGameplayEffectSpecToTarget(
 		*InEffectSpecHandle.Data,
 		TargetASC);
+
+	const float BaseDamage = InEffectSpecHandle.Data->GetSetByCallerMagnitude(
+		WarriorGameplayTags::Shared_SetByCaller_BaseDamage,
+		false,
+		0.f);
+
+	if (EffectHandle.WasSuccessfullyApplied() && BaseDamage > 0.f)
+	{
+		if (UWarriorAbilitySystemComponent* TargetWarriorASC =
+			Cast<UWarriorAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor)))
+		{
+			UWarriorFunctionLibrary::ApplyBossPoiseDamage(
+				TargetActor,
+				GetAvatarActorFromActorInfo(),
+				TargetWarriorASC->GetBossPoiseDamageOnHit(),
+				TargetWarriorASC->GetBossPoiseBreakStunDuration());
+
+			UWarriorFunctionLibrary::ApplyAttackImpactToTarget(
+				TargetActor,
+				GetAvatarActorFromActorInfo(),
+				UWarriorFunctionLibrary::GetAttackImpactDataFromEffectSpecHandle(
+					InEffectSpecHandle,
+					FWarriorAttackImpactData()));
+		}
+	}
 
 	return  EffectHandle;
 
@@ -242,16 +358,11 @@ void UWarriorGameplayAbility::ApplyGameplayEffectSpecHandleToHitResults(
 					FGameplayEventData EventData;
 					EventData.Instigator = OwningPawn;
 					EventData.Target = TargetPawn;
-
-					if (UWarriorAbilitySystemComponent* TargetWarriorASC =
-						Cast<UWarriorAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetPawn)))
-					{
-						UWarriorFunctionLibrary::ApplyBossPoiseDamage(
-							TargetPawn,
-							OwningPawn,
-							TargetWarriorASC->GetBossPoiseDamageOnHit(),
-							TargetWarriorASC->GetBossPoiseBreakStunDuration());
-					}
+					UWarriorFunctionLibrary::AddAttackImpactDataToGameplayEventData(
+						EventData,
+						UWarriorFunctionLibrary::GetAttackImpactDataFromEffectSpecHandle(
+							InEffectSpecHandle,
+							FWarriorAttackImpactData()));
 					
 					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetPawn, WarriorGameplayTags::Shared_Ability_HitReact, EventData);
 					
@@ -296,6 +407,22 @@ void UWarriorGameplayAbility::BroadcastInitialCurrentHealth()
 		0.f,
 		MaxHealth);
 	PawnUIComponent->OnCurrentHealthChanged.Broadcast(CurrentHealth / MaxHealth);
+	
+	const float BossMaxPoise = AbilitySystemComponent->GetNumericAttribute(UWarriorAttributeSet::GetMaxBossPoiseAttribute());
+	if (BossMaxPoise <= 0.f)
+	{
+		return;
+	}
+
+	const float BossCurrentPoise = FMath::Clamp(
+		AbilitySystemComponent->GetNumericAttribute(UWarriorAttributeSet::GetCurrentBossPoiseAttribute()),
+		0.f,
+		BossMaxPoise);
+
+	if (UEnemyUIComponent* EnemyUIComponent = PawnUIInterface->GetEnemyUIComponent())
+	{
+		EnemyUIComponent->OnCurrentBossPoiseChanged.Broadcast(BossCurrentPoise / BossMaxPoise);
+	}
 }
 
 // 标记连击输入已到达，供连击窗口逻辑在稍后消费。

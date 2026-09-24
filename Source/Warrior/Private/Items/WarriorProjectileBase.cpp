@@ -3,20 +3,17 @@
 
 #include "Items/WarriorProjectileBase.h"
 
+#include "AbilitySystemBlueprintLibrary.h"
 #include "Components/BoxComponent.h"
+#include "GameFramework/ProjectileMovementComponent.h"
 #include "NiagaraComponent.h"
 #include "WarriorFunctionLibrary.h"
-#include "AbilitySystem/WarriorAbilitySystemComponent.h"
-#include "GameFramework/ProjectileMovementComponent.h"
 #include "Warrior/Public/WarriorGameplayTags.h"
-#include "AbilitySystemBlueprintLibrary.h"
-#include "Chaos/Deformable/MuscleActivationConstraints.h"
-// Sets default values
+
 AWarriorProjectileBase::AWarriorProjectileBase()
 {
- 	
 	PrimaryActorTick.bCanEverTick = false;
-//发射物碰撞设置
+
 	ProjectileCollisionBox = CreateDefaultSubobject<UBoxComponent>(FName("BoxComponent"));
 	SetRootComponent(ProjectileCollisionBox);
 	ProjectileCollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -25,136 +22,149 @@ AWarriorProjectileBase::AWarriorProjectileBase()
 	ProjectileCollisionBox->SetCollisionResponseToChannel(ECC_WorldStatic,ECR_Block);
 	ProjectileCollisionBox->OnComponentHit.AddUniqueDynamic(this,&ThisClass::OnProjectileHit);
 	ProjectileCollisionBox->OnComponentBeginOverlap.AddUniqueDynamic(this,&ThisClass::OnProjectileOverlap);
-//NiagaraComponent设置	
+
 	ProjectileNiagaraComponent= CreateDefaultSubobject<UNiagaraComponent>(FName("NiagaraSystem"));
 	ProjectileNiagaraComponent->SetupAttachment(ProjectileCollisionBox);
-//发射物移动设置	
+
 	ProjectileMovementComponent=CreateDefaultSubobject<UProjectileMovementComponent>(FName("ProjectileMovementComponent"));
 	ProjectileMovementComponent->InitialSpeed = 700.f;
 	ProjectileMovementComponent->MaxSpeed = 900.f;
 	ProjectileMovementComponent->Velocity = FVector(1.0f, 0.0f, 0.0f);
 	ProjectileMovementComponent->ProjectileGravityScale = 0.f;
-	//生命周期
-	InitialLifeSpan = 4.f;
-	
-}
 
+	InitialLifeSpan = 4.f;
+}
 
 void AWarriorProjectileBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	if (ProjectileDamagePolicy == EProjectileDamagePolicy::OnBeginOverlap)
 	{
 		ProjectileCollisionBox->SetCollisionResponseToChannel(ECC_Pawn,ECR_Overlap);
-		
 	}
 }
 
-void AWarriorProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+void AWarriorProjectileBase::OnProjectileHit(
+	UPrimitiveComponent* HitComponent,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	FVector NormalImpulse,
+	const FHitResult& Hit)
 {
-	
 	BP_OnSpawnProjectileHitFx(Hit.ImpactPoint);
-	//受击者
-	
-	
+
 	APawn* HitedPawn = Cast<APawn>(OtherActor);
-	if (!HitedPawn||!UWarriorFunctionLibrary::IsTargetPawnHostile(GetInstigator(),HitedPawn))
+	if (!HitedPawn || !UWarriorFunctionLibrary::IsTargetPawnHostile(GetInstigator(), HitedPawn))
 	{
 		Destroy();
 		return;
 	}
-	
-	bool bIsValidBlock = false;
-	const bool bIsPlayerBlocking =UWarriorFunctionLibrary::NativeDoesActorHaveTag(HitedPawn,WarriorGameplayTags::Player_Status_Blocking);
+
 	FGameplayEventData Data;
-	Data.Instigator =this;
+	Data.Instigator = this;
 	Data.Target = HitedPawn;
-	if (UWarriorFunctionLibrary::IsActorInDodgeIFrame(HitedPawn))
+
+	if (TryHandleProjectileDefense(HitedPawn, Data))
 	{
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
-			HitedPawn,
-			WarriorGameplayTags::Player_Event_SuccessDodge,
-			Data);
 		Destroy();
 		return;
 	}
-	
-	if (bIsPlayerBlocking)
-	{
-		bIsValidBlock =UWarriorFunctionLibrary::IsValidBlock(this,HitedPawn);
-	}
-	if (bIsValidBlock)
-	{
-		UWarriorFunctionLibrary::HandleSuccessfulBlock(HitedPawn, this, SuccessfulBlockCost, Data);
-		
-	}
-	else
-	{
-		HandleApplyProjectileEffect(HitedPawn,Data);
-		
-	}
+
+	HandleApplyProjectileEffect(HitedPawn, Data);
 	Destroy();
 }
 
-void AWarriorProjectileBase::OnProjectileOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AWarriorProjectileBase::OnProjectileOverlap(
+	UPrimitiveComponent* OverlappedComponent,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex,
+	bool bFromSweep,
+	const FHitResult& SweepResult)
 {
-	
 	if (OverlapActors.Contains(OtherActor))
 	{
 		return;
 	}
 	OverlapActors.AddUnique(OtherActor);
-	
-	if (APawn*HitPawn = Cast<APawn>(OtherActor))
+
+	if (APawn* HitPawn = Cast<APawn>(OtherActor))
 	{
 		FGameplayEventData Data;
-		Data.Instigator =GetInstigator();
+		Data.Instigator = GetInstigator();
 		Data.Target = HitPawn;
-		//是否是敌人
-		if (UWarriorFunctionLibrary::IsTargetPawnHostile(GetInstigator(),HitPawn))
+
+		if (UWarriorFunctionLibrary::IsTargetPawnHostile(GetInstigator(), HitPawn))
 		{
-			if (UWarriorFunctionLibrary::IsActorInDodgeIFrame(HitPawn))
+			if (TryHandleProjectileDefense(HitPawn, Data))
 			{
-				UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
-					HitPawn,
-					WarriorGameplayTags::Player_Event_SuccessDodge,
-					Data);
 				return;
 			}
 
-			HandleApplyProjectileEffect(HitPawn,Data);
-			
+			HandleApplyProjectileEffect(HitPawn, Data);
 		}
-		
 	}
-	
-	
 }
 
 void AWarriorProjectileBase::HandleApplyProjectileEffect(APawn* InHitPawn,const FGameplayEventData& Data)
 {
 	checkf(ProjectileDamageHandle.IsValid(),TEXT("Forget Assign valid spec handle to projectile"));
-	
-	const bool bWasApplied =  UWarriorFunctionLibrary::ApplyGameplayEffectHandleToTarget(GetInstigator(),InHitPawn,ProjectileDamageHandle);
-	
+
+	FGameplayEffectSpecHandle DamageHandle = ProjectileDamageHandle;
+	UWarriorFunctionLibrary::SetAttackImpactDataToEffectSpecHandle(DamageHandle, ResolveAttackImpactData());
+
+	const bool bWasApplied =
+		UWarriorFunctionLibrary::ApplyGameplayEffectHandleToTarget(GetInstigator(), InHitPawn, DamageHandle);
+
 	if (bWasApplied)
 	{
-		if (UWarriorAbilitySystemComponent* TargetWarriorASC =
-			Cast<UWarriorAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InHitPawn)))
-		{
-			UWarriorFunctionLibrary::ApplyBossPoiseDamage(
-				InHitPawn,
-				GetInstigator(),
-				TargetWarriorASC->GetBossPoiseDamageOnHit(),
-				TargetWarriorASC->GetBossPoiseBreakStunDuration());
-		}
-
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(InHitPawn,WarriorGameplayTags::Shared_Event_HitReact,Data);
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+			InHitPawn,
+			WarriorGameplayTags::Shared_Event_HitReact,
+			Data);
 	}
 }
 
+FWarriorAttackImpactData AWarriorProjectileBase::ResolveAttackImpactData() const
+{
+	FWarriorAttackImpactData AttackImpactData = DefaultAttackImpactData;
+	AttackImpactData.BlockCost = SuccessfulBlockCost;
 
+	return UWarriorFunctionLibrary::GetAttackImpactDataFromEffectSpecHandle(
+		ProjectileDamageHandle,
+		AttackImpactData);
+}
 
+bool AWarriorProjectileBase::TryHandleProjectileDefense(APawn* InHitPawn, FGameplayEventData& Data)
+{
+	if (!InHitPawn)
+	{
+		return false;
+	}
+
+	const FWarriorAttackImpactData AttackImpactData = ResolveAttackImpactData();
+	Data.EventMagnitude = AttackImpactData.BlockCost;
+	UWarriorFunctionLibrary::AddAttackImpactDataToGameplayEventData(Data, AttackImpactData);
+
+	if (AttackImpactData.bCanBeDodged && UWarriorFunctionLibrary::IsActorInDodgeIFrame(InHitPawn))
+	{
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+			InHitPawn,
+			WarriorGameplayTags::Player_Event_SuccessDodge,
+			Data);
+		return true;
+	}
+
+	const bool bIsPlayerBlocking =
+		UWarriorFunctionLibrary::NativeDoesActorHaveTag(InHitPawn, WarriorGameplayTags::Player_Status_Blocking);
+	if (AttackImpactData.bCanBeBlocked &&
+		bIsPlayerBlocking &&
+		UWarriorFunctionLibrary::IsValidBlock(this, InHitPawn))
+	{
+		UWarriorFunctionLibrary::HandleSuccessfulBlock(InHitPawn, this, AttackImpactData.BlockCost, Data);
+		return true;
+	}
+
+	return false;
+}

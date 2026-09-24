@@ -337,6 +337,17 @@ void AWarriorHeroCharacter::Input_ZoomOut()
 
 void AWarriorHeroCharacter::Input_AbilityInputPressed(FGameplayTag Input_Tag)
 {
+	if (Input_Tag.MatchesTagExact(WarriorGameplayTags::InputTag_Roll) &&
+		UWarriorFunctionLibrary::NativeDoesActorHaveTag(this, WarriorGameplayTags::Player_Status_CanDodgeCancel))
+	{
+		FGameplayEventData Data;
+		Data.EventTag = WarriorGameplayTags::Player_Event_DodgeCancel;
+		Data.Instigator = this;
+		Data.Target = this;
+
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, WarriorGameplayTags::Player_Event_DodgeCancel, Data);
+	}
+
 	TryFaceMovementInputForAttack(Input_Tag);
 	WarriorAbilitySystemComponent->OnAbilityInputPressed(Input_Tag);
 	

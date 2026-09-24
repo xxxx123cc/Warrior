@@ -14,6 +14,46 @@ class UTexture2D;
 /**
  * 
  */
+USTRUCT(BlueprintType)
+struct FWarriorAttackImpactData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Defense")
+	bool bCanBeBlocked = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Defense")
+	bool bCanBeDodged = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Defense", meta=(ClampMin="0.0"))
+	float BlockCost = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Impact", meta=(ClampMin="0.0"))
+	float HorizontalLaunchStrength = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Impact", meta=(ClampMin="0.0"))
+	float VerticalLaunchStrength = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Impact", meta=(ClampMin="-89.0", ClampMax="89.0"))
+	float MeshTiltAngle = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Impact", meta=(ClampMin="0.0"))
+	float MeshTiltDuration = 0.18f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="HitReact", meta=(Categories="Shared.Status.HitReact"))
+	FGameplayTagContainer HitReactTags;
+
+	bool HasLaunchImpact() const
+	{
+		return !FMath::IsNearlyZero(HorizontalLaunchStrength) || !FMath::IsNearlyZero(VerticalLaunchStrength);
+	}
+
+	bool HasMeshTiltImpact() const
+	{
+		return !FMath::IsNearlyZero(MeshTiltAngle) && MeshTiltDuration > 0.f;
+	}
+};
+
 USTRUCT(Blueprintable)
 struct FWarriorHeroAbilitySets
 {

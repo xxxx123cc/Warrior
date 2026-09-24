@@ -6,6 +6,7 @@
 #include "Abilities/GameplayAbilityTypes.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "WarriorTypes/WarriorEnumTypes.h"
+#include "WarriorTypes/WarriorStructTypes.h"
 #include "WarriorFunctionLibrary.generated.h"
 
 class UWarriorGameInstance;
@@ -97,6 +98,18 @@ public:
 
 	UFUNCTION(BlueprintCallable,Category="Warrior|FunctionLibrary")
 	static bool ApplyGameplayEffectHandleToTarget(AActor* Instigator,AActor* TargetActor,const FGameplayEffectSpecHandle&InSpecHandle);
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|FunctionLibrary|Attack")
+	static void SetAttackImpactDataToEffectSpecHandle(UPARAM(ref) FGameplayEffectSpecHandle& InOutSpecHandle, const FWarriorAttackImpactData& AttackImpactData);
+
+	UFUNCTION(BlueprintPure, Category="Warrior|FunctionLibrary|Attack")
+	static FWarriorAttackImpactData GetAttackImpactDataFromEffectSpecHandle(const FGameplayEffectSpecHandle& InSpecHandle, FWarriorAttackImpactData DefaultAttackImpactData);
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|FunctionLibrary|Attack")
+	static bool ApplyAttackImpactToTarget(AActor* InTarget, AActor* InInstigator, const FWarriorAttackImpactData& AttackImpactData);
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|FunctionLibrary|Attack")
+	static void AddAttackImpactDataToGameplayEventData(UPARAM(ref) FGameplayEventData& InOutEventData, const FWarriorAttackImpactData& AttackImpactData);
 
 	UFUNCTION(BlueprintPure, Category="Warrior|FunctionLibrary")
 	static float GetScalableFloatValueAtLevel(const FScalableFloat& InScalableFloat, float InLevel);

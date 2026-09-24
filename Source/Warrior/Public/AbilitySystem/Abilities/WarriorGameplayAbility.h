@@ -53,6 +53,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "WarriorAbility|MoveCancel", meta = (ClampMin = "0.0"))
 	float MoveCancelMontageBlendOutTime = 0.1f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "WarriorAbility|DodgeCancel")
+	bool bEnableDodgeCancel = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "WarriorAbility|DodgeCancel", meta = (ClampMin = "0.0"))
+	float DodgeCancelMontageBlendOutTime = 0.1f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "WarriorAbility|Input")
 	bool bCancelAbilityOnInputRelease = true;
 
@@ -93,18 +99,28 @@ public:
 
 private:
 	void StartMoveCancelListener(const FGameplayAbilityActorInfo* ActorInfo);
+	void StartDodgeCancelListener(const FGameplayAbilityActorInfo* ActorInfo);
 	bool ShouldUseMoveCancelForActivation(
+		const FGameplayAbilitySpecHandle Handle,
+		const FGameplayAbilityActorInfo* ActorInfo) const;
+	bool ShouldUseDodgeCancelForActivation(
 		const FGameplayAbilitySpecHandle Handle,
 		const FGameplayAbilityActorInfo* ActorInfo) const;
 	static bool IsAttackInputTag(FGameplayTag InputTag);
 	void AddAttackMoveCancelTags(const FGameplayAbilityActorInfo* ActorInfo) const;
 	void RemoveAttackMoveCancelTags(const FGameplayAbilityActorInfo* ActorInfo) const;
+	void RemoveDodgeCancelTag(const FGameplayAbilityActorInfo* ActorInfo) const;
 
 	UFUNCTION()
 	void OnMoveCancelEventReceived(FGameplayEventData Payload);
 
-	UPROPERTY(Transient)
+	UFUNCTION()
+	void OnDodgeCancelEventReceived(FGameplayEventData Payload);
+
 	TObjectPtr<UAbilityTask_WaitGameplayEvent> MoveCancelEventTask = nullptr;
 
+	TObjectPtr<UAbilityTask_WaitGameplayEvent> DodgeCancelEventTask = nullptr;
+
 	bool bMoveCancelBoundForCurrentActivation = false;
+	bool bDodgeCancelBoundForCurrentActivation = false;
 };

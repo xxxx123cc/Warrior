@@ -41,6 +41,7 @@ namespace WarriorGameplayTags
 	//玩法相关标签//4.1
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_Equip_Axe,"Player.Ability.Equip.Axe");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_UnequipAxe,"Player.Ability.Unequip.Axe");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_Attack,"Player.Ability.Attack");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_Attack_Light_Axe,"Player.Ability.Attack.Light.Axe");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_Attack_Heavy_Axe,"Player.Ability.Attack.Heavy.Axe");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_Attack_HitPause,"Player.Ability.Attack.HitPause");
@@ -77,10 +78,12 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SwitchOut,"Player.Event.SwitchOut");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Landed,"Player.Event.Landed");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_MoveCancel,"Player.Event.MoveCancel");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Event_DodgeCancel,"Player.Event.DodgeCancel");
 	//状态类
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_JumpToFinisher,"Player.Status.JumpToFinisher");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Attacking,"Player.Status.Attacking");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_CanMoveCancel,"Player.Status.CanMoveCancel");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_CanDodgeCancel,"Player.Status.CanDodgeCancel");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Rolling,"Player.Status.Rolling");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_DodgeIFrame,"Player.Status.DodgeIFrame");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Blocking,"Player.Status.Blocking");
@@ -130,9 +133,21 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Status_HitReact_Back,"Shared.Status.HitReact.Back");
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Status_HitReact_Left,"Shared.Status.HitReact.Left");
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Status_HitReact_Right,"Shared.Status.HitReact.Right");
+	UE_DEFINE_GAMEPLAY_TAG(Shared_Status_HitReact_Light,"Shared.Status.HitReact.Light");
+	UE_DEFINE_GAMEPLAY_TAG(Shared_Status_HitReact_Heavy,"Shared.Status.HitReact.Heavy");
+	UE_DEFINE_GAMEPLAY_TAG(Shared_Status_HitReact_Launch,"Shared.Status.HitReact.Launch");
+	UE_DEFINE_GAMEPLAY_TAG(Shared_Status_HitReact_Knockback,"Shared.Status.HitReact.Knockback");
+	UE_DEFINE_GAMEPLAY_TAG(Shared_Status_HitReact_Tilt,"Shared.Status.HitReact.Tilt");
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Status_Invincible,"Shared.Status.Invincible");
 
 	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_BaseDamage,"Shared.SetByCaller.BaseDamage");
+	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_Attack_CanBeBlocked,"Shared.SetByCaller.Attack.CanBeBlocked");
+	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_Attack_CanBeDodged,"Shared.SetByCaller.Attack.CanBeDodged");
+	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_Attack_BlockCost,"Shared.SetByCaller.Attack.BlockCost");
+	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_Attack_HorizontalLaunchStrength,"Shared.SetByCaller.Attack.HorizontalLaunchStrength");
+	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_Attack_VerticalLaunchStrength,"Shared.SetByCaller.Attack.VerticalLaunchStrength");
+	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_Attack_MeshTiltAngle,"Shared.SetByCaller.Attack.MeshTiltAngle");
+	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_Attack_MeshTiltDuration,"Shared.SetByCaller.Attack.MeshTiltDuration");
 
 
 	/**游戏数据标签**/
