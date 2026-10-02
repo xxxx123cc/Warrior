@@ -105,6 +105,11 @@ float AWarriorHeroCharacter::GetDesiredMovementSpeed() const
 	return FMath::Max(bIsRunning ? RunSpeed : WalkSpeed, 0.f);
 }
 
+FVector2D AWarriorHeroCharacter::GetCachedMovementInputVector() const
+{
+	return CachedMovementInputVector;
+}
+
 void AWarriorHeroCharacter::ApplyDesiredMovementSpeed()
 {
 	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())

@@ -7,6 +7,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameplayTagContainer.h"
+#include "TimerManager.h"
 #include "WarriorHeroCharacter.generated.h"
 class USpringArmComponent;
 class UCameraComponent;
@@ -40,6 +41,27 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Movement|Run")
 	float GetDesiredMovementSpeed() const;
+
+	UFUNCTION(BlueprintPure, Category = "Movement|Input")
+	FVector2D GetCachedMovementInputVector() const;
+
+	UFUNCTION(BlueprintPure, Category = "Combat|Charge Attack")
+	bool IsHeavyAttackCharging() const;
+
+	UFUNCTION(BlueprintPure, Category = "Combat|Charge Attack")
+	int32 GetCurrentHeavyAttackChargeStage() const;
+
+	UFUNCTION(BlueprintPure, Category = "Combat|Charge Attack")
+	float GetCurrentHeavyAttackChargeHoldTime() const;
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Combat|Charge Attack")
+	void OnHeavyAttackChargeStarted();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Combat|Charge Attack")
+	void OnHeavyAttackChargeStageChanged(int32 ChargeStage, float HoldTime);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Combat|Charge Attack")
+	void OnHeavyAttackChargeEnded(int32 ChargeStage, float HoldTime, bool bEndedByFullCharge);
 protected:
 	//~ Begin APawn Interface
 	virtual void PossessedBy(AController* NewController) override;
@@ -86,6 +108,21 @@ private:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Movement|Run", meta = (AllowPrivateAccess = "true"))
 	bool bIsRunning = false;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Charge Attack", meta = (AllowPrivateAccess = "true"))
+	bool bEnablePressLightHoldHeavyAttack = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Charge Attack", meta = (AllowPrivateAccess = "true", Categories = "InputTag"))
+	FGameplayTag ChargeAttackInputTag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Charge Attack", meta = (AllowPrivateAccess = "true", Categories = "InputTag"))
+	FGameplayTag ChargeAttackHeavyInputTag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Charge Attack", meta = (AllowPrivateAccess = "true", ClampMin = "0.01"))
+	float HeavyAttackChargeStageDuration = 0.5f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Charge Attack", meta = (AllowPrivateAccess = "true", ClampMin = "1", ClampMax = "3"))
+	int32 MaxHeavyAttackChargeStage = 3;
+
 	#pragma region Inputs
 
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category="CharacterData", meta=(AllowPrivateAccess="true"))
@@ -119,8 +156,19 @@ private:
 	FVector2D GetCurrentMovementInputVector() const;
 	bool TryResolveMovementInputDirection(const FVector2D& MovementVector, FVector& OutDirection) const;
 	void AdjustCameraZoom(float ArmLengthDelta);
+	bool ShouldUsePressLightHoldHeavyAttack(FGameplayTag InputTag) const;
+	void StartHeavyAttackCharge(FGameplayTag InputTag);
+	void AdvanceHeavyAttackChargeStage();
+	void FinishHeavyAttackCharge(bool bEndedByFullCharge);
+	int32 ResolveHeavyAttackChargeStage(float HoldTime) const;
+	float GetMaxHeavyAttackChargeHoldTime() const;
 
 	FVector2D CachedMovementInputVector = FVector2D::ZeroVector;
+	FGameplayTag ActiveChargeAttackInputTag;
+	FTimerHandle HeavyAttackChargeStageTimerHandle;
+	double HeavyAttackChargeStartTime = 0.0;
+	int32 CurrentHeavyAttackChargeStage = 0;
+	bool bIsHeavyAttackCharging = false;
 
 public:
 	FORCEINLINE UHeroCombatComponent* GetHeroCombatComponent() const{return HeroCombatComponent;}

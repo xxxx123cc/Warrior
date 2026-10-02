@@ -17,6 +17,7 @@
 #include "Items/Weapons/WarriorWeaponBase.h"
 #include "WarriorGameplayTags.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "SaveGame/WarriorSaveGame.h"
 #include "WarriorTypes/WarriorCountDownAction.h"
 #include "Warrior/Public/WarriorGameInstance.h"
@@ -220,6 +221,58 @@ bool UWarriorFunctionLibrary::IsTargetPawnHostile(APawn* QueryPawn, APawn* Targe
 		return false;
 
 	return QueryTeamAgent->GetGenericTeamId() != TargetTeamAgent->GetGenericTeamId();
+}
+
+AActor* UWarriorFunctionLibrary::FindNearestHostileActorInFront(
+	APawn* QueryPawn,
+	float TraceDistance,
+	FVector TraceBoxHalfSize,
+	const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes,
+	bool bDrawDebugShape)
+{
+	if (!QueryPawn || ObjectTypes.IsEmpty() || TraceDistance <= 0.f)
+	{
+		return nullptr;
+	}
+
+	const FVector TraceStart = QueryPawn->GetActorLocation();
+	const FVector TraceEnd = TraceStart + QueryPawn->GetActorForwardVector() * TraceDistance;
+	const FRotator TraceRotation = QueryPawn->GetActorForwardVector().ToOrientationRotator();
+
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Add(QueryPawn);
+
+	TArray<FHitResult> HitResults;
+	UKismetSystemLibrary::BoxTraceMultiForObjects(
+		QueryPawn,
+		TraceStart,
+		TraceEnd,
+		TraceBoxHalfSize,
+		TraceRotation,
+		ObjectTypes,
+		false,
+		ActorsToIgnore,
+		bDrawDebugShape ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None,
+		HitResults,
+		true);
+
+	TArray<AActor*> HostileActors;
+	for (const FHitResult& HitResult : HitResults)
+	{
+		APawn* HitPawn = Cast<APawn>(HitResult.GetActor());
+		if (HitPawn && IsTargetPawnHostile(QueryPawn, HitPawn))
+		{
+			HostileActors.AddUnique(HitPawn);
+		}
+	}
+
+	if (HostileActors.IsEmpty())
+	{
+		return nullptr;
+	}
+
+	float ClosestDistance = 0.f;
+	return UGameplayStatics::FindNearestActor(QueryPawn->GetActorLocation(), HostileActors, ClosestDistance);
 }
 
 FGameplayTag UWarriorFunctionLibrary::ComputeAttackDirectionTag(AActor* AttackerPawn, AActor* TargetPawn,

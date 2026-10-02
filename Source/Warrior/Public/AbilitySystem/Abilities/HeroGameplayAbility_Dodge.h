@@ -67,9 +67,6 @@ protected:
 	float DodgeCooldown = 0.45f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dodge")
-	bool bAllowDodgeWhileFalling = true;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dodge")
 	bool bRotateToDodgeDirection = true;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dodge")

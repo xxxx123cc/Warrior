@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbilityTypes.h"
+#include "Engine/EngineTypes.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "WarriorTypes/WarriorEnumTypes.h"
 #include "WarriorTypes/WarriorStructTypes.h"
@@ -77,6 +78,14 @@ public:
 
 	UFUNCTION(BlueprintPure,Category="Warrior|FunctionLibrary")
 	static bool IsTargetPawnHostile(APawn* QueryPawn,APawn* TargetPawn);
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|FunctionLibrary|Targeting", meta=(AutoCreateRefTerm="ObjectTypes"))
+	static AActor* FindNearestHostileActorInFront(
+		APawn* QueryPawn,
+		float TraceDistance,
+		FVector TraceBoxHalfSize,
+		const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes,
+		bool bDrawDebugShape = false);
 	
 	UFUNCTION(BlueprintPure,Category="Warrior|FunctionLibrary")
 	static FGameplayTag ComputeAttackDirectionTag(AActor* AttackerPawn,AActor* TargetPawn,float& OutAngleDifference);

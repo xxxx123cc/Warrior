@@ -190,7 +190,12 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 				Spec.Handle,
 				ActivationInfo.GetActivationPredictionKey());
 
-			UWarriorGameplayAbility* WarriorAbility = Cast<UWarriorGameplayAbility>(Spec.GetPrimaryInstance());
+			const UWarriorGameplayAbility* WarriorAbility = Cast<UWarriorGameplayAbility>(Spec.GetPrimaryInstance());
+			if (!WarriorAbility)
+			{
+				WarriorAbility = Cast<UWarriorGameplayAbility>(Spec.Ability);
+			}
+
 			const bool bShouldCancelOnRelease = !WarriorAbility || WarriorAbility->ShouldCancelAbilityOnInputRelease();
 			if (bShouldCancelOnRelease && Spec.IsActive())
 			{

@@ -58,12 +58,13 @@ bool UHeroGameplayAbility_Dodge::CanActivateAbility(
 
 	const UCharacterMovementComponent* MovementComponent = HeroCharacter->GetCharacterMovement();
 	if (!MovementComponent || MovementComponent->MovementMode == MOVE_None ||
-		MovementComponent->IsSwimming() || MovementComponent->IsFlying())
+		MovementComponent->IsSwimming() || MovementComponent->IsFlying() ||
+		MovementComponent->IsFalling())
 	{
 		return false;
 	}
 
-	return bAllowDodgeWhileFalling || !MovementComponent->IsFalling();
+	return true;
 }
 
 void UHeroGameplayAbility_Dodge::ActivateAbility(
@@ -80,6 +81,13 @@ void UHeroGameplayAbility_Dodge::ActivateAbility(
 	AWarriorHeroCharacter* HeroCharacter =
 		ActorInfo ? Cast<AWarriorHeroCharacter>(ActorInfo->AvatarActor.Get()) : nullptr;
 	if (!HeroCharacter)
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+
+	const UCharacterMovementComponent* MovementComponent = HeroCharacter->GetCharacterMovement();
+	if (!MovementComponent || MovementComponent->IsFalling())
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;

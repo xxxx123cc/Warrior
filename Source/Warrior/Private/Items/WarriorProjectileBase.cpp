@@ -4,6 +4,7 @@
 #include "Items/WarriorProjectileBase.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "GameplayEffect.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "NiagaraComponent.h"
@@ -13,13 +14,16 @@
 AWarriorProjectileBase::AWarriorProjectileBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
+	SpawnCollisionHandlingMethod = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 	ProjectileCollisionBox = CreateDefaultSubobject<UBoxComponent>(FName("BoxComponent"));
 	SetRootComponent(ProjectileCollisionBox);
 	ProjectileCollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	ProjectileCollisionBox->SetCollisionResponseToAllChannels(ECR_Ignore);
 	ProjectileCollisionBox->SetCollisionResponseToChannel(ECC_Pawn,ECR_Block);
 	ProjectileCollisionBox->SetCollisionResponseToChannel(ECC_WorldDynamic,ECR_Block);
 	ProjectileCollisionBox->SetCollisionResponseToChannel(ECC_WorldStatic,ECR_Block);
+	ProjectileCollisionBox->SetNotifyRigidBodyCollision(true);
 	ProjectileCollisionBox->OnComponentHit.AddUniqueDynamic(this,&ThisClass::OnProjectileHit);
 	ProjectileCollisionBox->OnComponentBeginOverlap.AddUniqueDynamic(this,&ThisClass::OnProjectileOverlap);
 
@@ -30,6 +34,7 @@ AWarriorProjectileBase::AWarriorProjectileBase()
 	ProjectileMovementComponent->InitialSpeed = 700.f;
 	ProjectileMovementComponent->MaxSpeed = 900.f;
 	ProjectileMovementComponent->Velocity = FVector(1.0f, 0.0f, 0.0f);
+	ProjectileMovementComponent->bInitialVelocityInLocalSpace = true;
 	ProjectileMovementComponent->ProjectileGravityScale = 0.f;
 
 	InitialLifeSpan = 4.f;
@@ -38,6 +43,16 @@ AWarriorProjectileBase::AWarriorProjectileBase()
 void AWarriorProjectileBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (AActor* ProjectileOwner = GetOwner())
+	{
+		ProjectileCollisionBox->IgnoreActorWhenMoving(ProjectileOwner, true);
+	}
+
+	if (APawn* ProjectileInstigator = GetInstigator())
+	{
+		ProjectileCollisionBox->IgnoreActorWhenMoving(ProjectileInstigator, true);
+	}
 
 	if (ProjectileDamagePolicy == EProjectileDamagePolicy::OnBeginOverlap)
 	{
@@ -52,6 +67,11 @@ void AWarriorProjectileBase::OnProjectileHit(
 	FVector NormalImpulse,
 	const FHitResult& Hit)
 {
+	if (OtherActor == GetOwner() || OtherActor == GetInstigator())
+	{
+		return;
+	}
+
 	BP_OnSpawnProjectileHitFx(Hit.ImpactPoint);
 
 	APawn* HitedPawn = Cast<APawn>(OtherActor);
@@ -83,6 +103,11 @@ void AWarriorProjectileBase::OnProjectileOverlap(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
+	if (OtherActor == GetOwner() || OtherActor == GetInstigator())
+	{
+		return;
+	}
+
 	if (OverlapActors.Contains(OtherActor))
 	{
 		return;
@@ -95,15 +120,27 @@ void AWarriorProjectileBase::OnProjectileOverlap(
 		Data.Instigator = GetInstigator();
 		Data.Target = HitPawn;
 
-		if (UWarriorFunctionLibrary::IsTargetPawnHostile(GetInstigator(), HitPawn))
+		if (!GetInstigator())
 		{
-			if (TryHandleProjectileDefense(HitPawn, Data))
-			{
-				return;
-			}
-
-			HandleApplyProjectileEffect(HitPawn, Data);
+			UE_LOG(LogTemp, Warning, TEXT("Projectile overlap ignored: %s has no Instigator."), *GetNameSafe(this));
+			return;
 		}
+
+		if (!UWarriorFunctionLibrary::IsTargetPawnHostile(GetInstigator(), HitPawn))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Projectile overlap ignored: %s is not hostile to %s."),
+				*GetNameSafe(HitPawn),
+				*GetNameSafe(GetInstigator()));
+			return;
+		}
+
+		if (TryHandleProjectileDefense(HitPawn, Data))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Projectile damage blocked/dodged by %s."), *GetNameSafe(HitPawn));
+			return;
+		}
+
+		HandleApplyProjectileEffect(HitPawn, Data);
 	}
 }
 
@@ -111,8 +148,26 @@ void AWarriorProjectileBase::HandleApplyProjectileEffect(APawn* InHitPawn,const 
 {
 	checkf(ProjectileDamageHandle.IsValid(),TEXT("Forget Assign valid spec handle to projectile"));
 
+	if (!ProjectileDamageHandle.Data.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Projectile damage skipped: invalid damage spec data on %s."), *GetNameSafe(this));
+		return;
+	}
+
 	FGameplayEffectSpecHandle DamageHandle = ProjectileDamageHandle;
 	UWarriorFunctionLibrary::SetAttackImpactDataToEffectSpecHandle(DamageHandle, ResolveAttackImpactData());
+
+	const float BaseDamage = DamageHandle.Data->GetSetByCallerMagnitude(
+		WarriorGameplayTags::Shared_SetByCaller_BaseDamage,
+		false,
+		0.f);
+	if (BaseDamage <= 0.f)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Projectile damage spec has no positive base damage. Projectile=%s Target=%s BaseDamage=%.2f"),
+			*GetNameSafe(this),
+			*GetNameSafe(InHitPawn),
+			BaseDamage);
+	}
 
 	const bool bWasApplied =
 		UWarriorFunctionLibrary::ApplyGameplayEffectHandleToTarget(GetInstigator(), InHitPawn, DamageHandle);
@@ -123,6 +178,13 @@ void AWarriorProjectileBase::HandleApplyProjectileEffect(APawn* InHitPawn,const 
 			InHitPawn,
 			WarriorGameplayTags::Shared_Event_HitReact,
 			Data);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Projectile damage GE failed to apply. Projectile=%s Instigator=%s Target=%s"),
+			*GetNameSafe(this),
+			*GetNameSafe(GetInstigator()),
+			*GetNameSafe(InHitPawn));
 	}
 }
 
