@@ -89,13 +89,19 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Warrior|Ability")
 	bool bHasPendingComboInput = false;
 
+	UPROPERTY(BlueprintReadWrite, Category = "Warrior|Ability")
+	FGameplayTag LastComboInputTag;
+
 	// 记录一次连击输入（通常由输入事件调用）。
-	void OnComboInputPressed();
+	void OnComboInputPressed(FGameplayTag InputTag = FGameplayTag());
 
 	bool ShouldCancelAbilityOnInputRelease() const { return bCancelAbilityOnInputRelease; }
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Warrior|Combo")
 	void BP_OnComboInputPressed();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Warrior|Combo")
+	void BP_OnComboInputPressedWithTag(FGameplayTag InputTag);
 
 private:
 	void StartMoveCancelListener(const FGameplayAbilityActorInfo* ActorInfo);

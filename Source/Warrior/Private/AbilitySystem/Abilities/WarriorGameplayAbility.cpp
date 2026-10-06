@@ -173,14 +173,8 @@ bool UWarriorGameplayAbility::ShouldUseDodgeCancelForActivation(
 
 bool UWarriorGameplayAbility::IsAttackInputTag(FGameplayTag InputTag)
 {
-	return InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack_Axe) ||
-		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack) ||
-		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack_Axe) ||
-		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack) ||
-		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack_Axe_Air) ||
-		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack_Axe_Rage_Ground) ||
-		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack_Axe_Rage_Ground) ||
-		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack_Axe_Rage_Air);
+	return InputTag.MatchesTag(WarriorGameplayTags::InputTag_LightAttack) ||
+		InputTag.MatchesTag(WarriorGameplayTags::InputTag_HeavyAttack);
 }
 
 void UWarriorGameplayAbility::AddAttackMoveCancelTags(const FGameplayAbilityActorInfo* ActorInfo) const
@@ -426,8 +420,10 @@ void UWarriorGameplayAbility::BroadcastInitialCurrentHealth()
 }
 
 // 标记连击输入已到达，供连击窗口逻辑在稍后消费。
-void UWarriorGameplayAbility::OnComboInputPressed()
+void UWarriorGameplayAbility::OnComboInputPressed(FGameplayTag InputTag)
 {
 	bHasPendingComboInput = true;
+	LastComboInputTag = InputTag;
 	BP_OnComboInputPressed();
+	BP_OnComboInputPressedWithTag(InputTag);
 }

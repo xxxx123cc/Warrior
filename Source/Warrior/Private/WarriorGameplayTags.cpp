@@ -15,6 +15,7 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_UnEquipAxe,"InputTag.UnEquipAxe");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_LightAttack,"InputTag.LightAttack");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_HeavyAttack,"InputTag.HeavyAttack");
+	UE_DEFINE_GAMEPLAY_TAG(InputTag_LightAttack_Air,"InputTag.LightAttack.Air");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_LightAttack_Axe,"InputTag.LightAttack.Axe");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_HeavyAttack_Axe,"InputTag.HeavyAttack.Axe");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_HeavyAttack_Axe_Air,"InputTag.HeavyAttack.Axe.Air");

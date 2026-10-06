@@ -7,6 +7,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameplayTagContainer.h"
+#include "TimerManager.h"
 #include "WarriorHeroCharacter.generated.h"
 class USpringArmComponent;
 class UCameraComponent;
@@ -14,6 +15,7 @@ class UDataAsset_InputConfig;
 struct FInputActionValue;
 class UHeroCombatComponent;
 class UHeroUIComponent	;
+class UWarriorInventoryComponent;
 /**
 
  */
@@ -29,6 +31,9 @@ public:
 	virtual UPawnUIComponent* GetPawnUIComponent() const override ;
 	virtual UHeroUIComponent* GetHeroUIComponent() const override ;
 
+	UFUNCTION(BlueprintPure, Category="Warrior|Inventory")
+	UWarriorInventoryComponent* GetWarriorInventoryComponent() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Movement|Run")
 	void SetRunning(bool bShouldRun);
 
@@ -43,6 +48,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Movement|Input")
 	FVector2D GetCachedMovementInputVector() const;
+
+	UFUNCTION(BlueprintPure, Category = "Movement|TurnStart")
+	bool HasActiveTurnStartRequest() const;
+
+	UFUNCTION(BlueprintPure, Category = "Movement|TurnStart")
+	float GetActiveTurnStartAngle() const;
 protected:
 	//~ Begin APawn Interface
 	virtual void PossessedBy(AController* NewController) override;
@@ -77,6 +88,9 @@ private:
 #pragma endregion//添加弹簧臂和摄影机
 
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory", meta=(AllowPrivateAccess="true"))
+	UWarriorInventoryComponent* WarriorInventoryComponent;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|Run", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
 	float WalkSpeed = 300.f;
 
@@ -94,6 +108,7 @@ private:
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category="CharacterData", meta=(AllowPrivateAccess="true"))
 	UDataAsset_InputConfig* InputConfigDataAsset;
 
+	void Input_MoveStarted(const FInputActionValue& InputActionValue);
 	void Input_Move(const FInputActionValue& InputActionValue);
 	void Input_MoveCompleted(const FInputActionValue& InputActionValue);
 
@@ -115,15 +130,60 @@ private:
 	void Input_AbilityInputReleased(FGameplayTag Input_Tag);
 #pragma endregion
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Input", meta = (AllowPrivateAccess = "true"))
+	bool bRouteHeavyAttackThroughLightAttackHold = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Input", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float HeavyAttackHoldThreshold = 0.35f;
+
+	FTimerHandle AttackHoldTimerHandle;
+	FGameplayTag PendingLightAttackInputTag;
+	FGameplayTag PendingHeavyAttackInputTag;
+	float AttackHoldStartedTime = 0.f;
+	bool bIsLightAttackInputHeld = false;
+	bool bDidTriggerHeavyAttackFromHold = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|TurnStart", meta = (AllowPrivateAccess = "true"))
+	bool bEnableInputTurnStart = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|TurnStart", meta = (AllowPrivateAccess = "true"))
+	bool bHoldMovementDuringInputTurnStart = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|TurnStart", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ClampMax = "180.0"))
+	float InputTurnStartMinAngle = 45.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|TurnStart", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float InputTurnStartMaxGroundSpeed = 20.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|TurnStart", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float InputTurnStartRequestDuration = 0.35f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|TurnStart", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float InputTurnStartMovementHoldDuration = 0.18f;
+
 	bool HasJumpableFloor() const;
 	void ApplyDesiredMovementSpeed();
 	bool IsAttackInputTag(FGameplayTag InputTag) const;
+	bool IsLightAttackInputTag(FGameplayTag InputTag) const;
+	bool IsHeavyAttackInputTag(FGameplayTag InputTag) const;
+	FGameplayTag ResolveHeavyAttackInputTagForHold(FGameplayTag LightAttackInputTag) const;
 	bool TryFaceMovementInputForAttack(FGameplayTag InputTag);
 	FVector2D GetCurrentMovementInputVector() const;
 	bool TryResolveMovementInputDirection(const FVector2D& MovementVector, FVector& OutDirection) const;
 	void AdjustCameraZoom(float ArmLengthDelta);
+	void HandleFinalAbilityInputPressed(FGameplayTag InputTag);
+	void BeginAttackHold(FGameplayTag InputTag);
+	void TriggerHeavyAttackFromHold();
+	void ResetAttackHoldState();
+	float GetAttackHeldDuration() const;
+	void TryStartInputTurnStart(const FVector2D& MovementVector);
+	bool ShouldHoldMovementForTurnStart() const;
+	bool ShouldBypassAttackHoldForAirAttack(FGameplayTag InputTag) const;
 
 	FVector2D CachedMovementInputVector = FVector2D::ZeroVector;
+	float ActiveTurnStartAngle = 0.f;
+	float ActiveTurnStartRequestEndTime = 0.f;
+	float TurnStartMovementHoldEndTime = 0.f;
 
 public:
 	FORCEINLINE UHeroCombatComponent* GetHeroCombatComponent() const{return HeroCombatComponent;}

@@ -18,6 +18,16 @@ enum class EWarriorTurnInPlaceDirection : uint8
 	Left180,
 	Right180
 };
+
+UENUM(BlueprintType)
+enum class EWarriorTurnStartDirection : uint8
+{
+	None,
+	Left90,
+	Right90,
+	Left180,
+	Right180
+};
 /**
  * 
  */
@@ -138,6 +148,24 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="AnimData|TurnInPlace", meta = (ClampMin = "0.0"))
 	float TurnInPlaceMaxGroundSpeed = 10.f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category="AnimData|TurnStart")
+	float TurnStartAngle = 0.f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category="AnimData|TurnStart")
+	bool bShouldTurnStart = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category="AnimData|TurnStart")
+	EWarriorTurnStartDirection TurnStartDirection = EWarriorTurnStartDirection::None;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="AnimData|TurnStart", meta = (ClampMin = "0.0", ClampMax = "180.0"))
+	float TurnStartMinAngle = 45.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="AnimData|TurnStart", meta = (ClampMin = "0.0", ClampMax = "180.0"))
+	float TurnStart180Angle = 135.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="AnimData|TurnStart", meta = (ClampMin = "0.0"))
+	float TurnStartMaxGroundSpeed = 20.f;
 	
 	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="AnimData|Locomotion")
 	bool bShouldStrafing;

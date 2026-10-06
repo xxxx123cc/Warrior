@@ -47,13 +47,17 @@ void UWarriorAbilitySystemComponent::OnAbilityInputPressed(const FGameplayTag& I
 TArray<FGameplayTag> UWarriorAbilitySystemComponent::ResolveAbilityInputTagPriority(const FGameplayTag& InputTag) const
 {
 	TArray<FGameplayTag> InputTagPriority;
-	if (!InputTag.IsValid() || IsInputBlockedByAttackState(InputTag))
+	if (!InputTag.IsValid())
 	{
 		return InputTagPriority;
 	}
 
-	const bool bIsLightAttack = InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack_Axe);
-	const bool bIsHeavyAttack = InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack_Axe);
+	const bool bIsLightAttack =
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack) ||
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack_Axe);
+	const bool bIsHeavyAttack =
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack) ||
+		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack_Axe);
 
 	if (!bIsLightAttack && !bIsHeavyAttack)
 	{
@@ -71,6 +75,11 @@ TArray<FGameplayTag> UWarriorAbilitySystemComponent::ResolveAbilityInputTagPrior
 			if (bIsLightAttack)
 			{
 				InputTagPriority.AddUnique(WarriorGameplayTags::InputTag_LightAttack_Axe_Rage_Air);
+				InputTagPriority.AddUnique(WarriorGameplayTags::InputTag_LightAttack_Air);
+			}
+			else if (bIsHeavyAttack)
+			{
+				InputTagPriority.AddUnique(WarriorGameplayTags::InputTag_HeavyAttack_Axe_Air);
 			}
 		}
 		else
@@ -82,7 +91,9 @@ TArray<FGameplayTag> UWarriorAbilitySystemComponent::ResolveAbilityInputTagPrior
 	}
 	else if (bIsAirborne)
 	{
-		InputTagPriority.AddUnique(WarriorGameplayTags::InputTag_HeavyAttack_Axe_Air);
+		InputTagPriority.AddUnique(bIsLightAttack
+			? WarriorGameplayTags::InputTag_LightAttack_Air
+			: WarriorGameplayTags::InputTag_HeavyAttack_Axe_Air);
 	}
 
 	InputTagPriority.AddUnique(InputTag);
@@ -108,12 +119,13 @@ bool UWarriorAbilitySystemComponent::IsRageActive() const
 
 bool UWarriorAbilitySystemComponent::IsInputBlockedByAttackState(const FGameplayTag& InputTag) const
 {
-	const bool bIsHeavyAttack = InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack_Axe);
-	return bIsHeavyAttack && IsRageActive() && IsAvatarAirborne();
+	return false;
 }
 
 bool UWarriorAbilitySystemComponent::TryHandleAbilityInput(const FGameplayTag& InputTag)
 {
+	FGameplayAbilitySpec* MatchingInactiveAbilitySpec = nullptr;
+
 	for (FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
 	{
 		if (!AbilitySpec.GetDynamicSpecSourceTags().HasTagExact(InputTag))
@@ -138,44 +150,100 @@ bool UWarriorAbilitySystemComponent::TryHandleAbilityInput(const FGameplayTag& I
 
 		if (bIsAbilityActive)
 		{
-			AbilitySpecInputPressed(AbilitySpec);
-
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
-			TArray<UGameplayAbility*> Instances = AbilitySpec.GetAbilityInstances();
-			const FGameplayAbilityActivationInfo& ActivationInfo =
-				Instances.IsEmpty() ? AbilitySpec.ActivationInfo : Instances.Last()->GetCurrentActivationInfoRef();
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
-
-			InvokeReplicatedEvent(
-				EAbilityGenericReplicatedEvent::InputPressed,
-				AbilitySpec.Handle,
-				ActivationInfo.GetActivationPredictionKey());
-
-			if (UWarriorGameplayAbility* WarriorAbility = Cast<UWarriorGameplayAbility>(AbilitySpec.GetPrimaryInstance()))
-			{
-				WarriorAbility->OnComboInputPressed();
-			}
-
+			HandleActiveAbilityInput(AbilitySpec, InputTag);
 			return true;
 		}
 
-		TryActivateAbility(AbilitySpec.Handle);
+		if (!MatchingInactiveAbilitySpec)
+		{
+			MatchingInactiveAbilitySpec = &AbilitySpec;
+		}
+	}
+
+	if (MatchingInactiveAbilitySpec)
+	{
+		return TryActivateAbility(MatchingInactiveAbilitySpec->Handle);
+	}
+
+	if (TryRouteComboInputToActiveAttackAbility(InputTag))
+	{
 		return true;
 	}
 
 	return false;
 }
 
-void UWarriorAbilitySystemComponent::OnAbilityInputReleased(const FGameplayTag& InputTag)
+bool UWarriorAbilitySystemComponent::TryRouteComboInputToActiveAttackAbility(const FGameplayTag& InputTag)
 {
-	if (!InputTag.IsValid() || !InputTag.MatchesTag(WarriorGameplayTags::InputTag_MustBeHeld))
+	if (!InputTag.MatchesTag(WarriorGameplayTags::InputTag_LightAttack))
+	{
+		return false;
+	}
+
+	for (FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
+	{
+		if (!AbilitySpec.IsActive())
+		{
+			continue;
+		}
+
+		for (const FGameplayTag& SourceTag : AbilitySpec.GetDynamicSpecSourceTags())
+		{
+			if (SourceTag.MatchesTag(WarriorGameplayTags::InputTag_LightAttack))
+			{
+				HandleActiveAbilityInput(AbilitySpec, InputTag);
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+void UWarriorAbilitySystemComponent::HandleActiveAbilityInput(FGameplayAbilitySpec& AbilitySpec, const FGameplayTag& InputTag)
+{
+	AbilitySpecInputPressed(AbilitySpec);
+
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	TArray<UGameplayAbility*> Instances = AbilitySpec.GetAbilityInstances();
+	const FGameplayAbilityActivationInfo& ActivationInfo =
+		Instances.IsEmpty() ? AbilitySpec.ActivationInfo : Instances.Last()->GetCurrentActivationInfoRef();
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
+	InvokeReplicatedEvent(
+		EAbilityGenericReplicatedEvent::InputPressed,
+		AbilitySpec.Handle,
+		ActivationInfo.GetActivationPredictionKey());
+
+	if (UWarriorGameplayAbility* WarriorAbility = Cast<UWarriorGameplayAbility>(AbilitySpec.GetPrimaryInstance()))
+	{
+		WarriorAbility->OnComboInputPressed(InputTag);
+	}
+}
+
+void UWarriorAbilitySystemComponent::OnAbilityInputReleased(const FGameplayTag& InputTag, bool bForceRelease)
+{
+	if (!InputTag.IsValid() || (!bForceRelease && !InputTag.MatchesTag(WarriorGameplayTags::InputTag_MustBeHeld)))
 	{
 		return;
 	}
 
 	for (FGameplayAbilitySpec& Spec : GetActivatableAbilities())
 	{
-		if (Spec.GetDynamicSpecSourceTags().HasTagExact(InputTag) && Spec.IsActive())
+		bool bMatchesReleasedInput = Spec.GetDynamicSpecSourceTags().HasTagExact(InputTag);
+		if (!bMatchesReleasedInput && bForceRelease && InputTag.MatchesTag(WarriorGameplayTags::InputTag_HeavyAttack))
+		{
+			for (const FGameplayTag& SourceTag : Spec.GetDynamicSpecSourceTags())
+			{
+				if (SourceTag.MatchesTag(WarriorGameplayTags::InputTag_HeavyAttack))
+				{
+					bMatchesReleasedInput = true;
+					break;
+				}
+			}
+		}
+
+		if (bMatchesReleasedInput && Spec.IsActive())
 		{
 			AbilitySpecInputReleased(Spec);
 

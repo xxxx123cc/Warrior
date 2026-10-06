@@ -48,6 +48,29 @@ void UWarriorCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaS
 	MoveStartBlendSpaceX = InputMoveX;
 	MoveStartBlendSpaceY = InputMoveY;
 
+	TurnStartAngle = 0.f;
+	const bool bHasInputTurnStartRequest =
+		OwningHeroCharacter && OwningHeroCharacter->HasActiveTurnStartRequest();
+	if (bHasInputTurnStartRequest)
+	{
+		TurnStartAngle = OwningHeroCharacter->GetActiveTurnStartAngle();
+	}
+	else if (bHasMovementInput)
+	{
+		const FRotator ControlYawRotation(0.f, OwningCharacter->GetBaseAimRotation().Yaw, 0.f);
+		const FRotationMatrix ControlYawMatrix(ControlYawRotation);
+		FVector DesiredInputDirection =
+			ControlYawMatrix.GetUnitAxis(EAxis::X) * InputMoveY +
+			ControlYawMatrix.GetUnitAxis(EAxis::Y) * InputMoveX;
+		DesiredInputDirection.Z = 0.f;
+
+		if (DesiredInputDirection.Normalize())
+		{
+			const float DesiredYaw = DesiredInputDirection.ToOrientationRotator().Yaw;
+			TurnStartAngle = FMath::FindDeltaAngleDegrees(OwningCharacter->GetActorRotation().Yaw, DesiredYaw);
+		}
+	}
+
 	FVector2D TargetMoveLoopBlendSpace(GroundSpeedy, GroundSpeedx);
 	if (bHasMovementInput)
 	{
@@ -101,6 +124,34 @@ void UWarriorCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaS
 	bShouldEnterFallingState = bIsFalling && VerticalVelocity <= 0.f;
 	bShouldEnterLandState = !bIsFalling;
 	bHasAcceleration = OwningMovementComponent->GetCurrentAcceleration().SizeSquared2D()>0.f;
+
+	const float AbsTurnStartAngle = FMath::Abs(TurnStartAngle);
+	bShouldTurnStart =
+		!bIsFalling &&
+		(bHasInputTurnStartRequest || bHasMovementInput) &&
+		GroundSpeed <= TurnStartMaxGroundSpeed &&
+		AbsTurnStartAngle >= TurnStartMinAngle;
+
+	if (!bShouldTurnStart)
+	{
+		TurnStartDirection = EWarriorTurnStartDirection::None;
+	}
+	else if (TurnStartAngle <= -TurnStart180Angle)
+	{
+		TurnStartDirection = EWarriorTurnStartDirection::Left180;
+	}
+	else if (TurnStartAngle < 0.f)
+	{
+		TurnStartDirection = EWarriorTurnStartDirection::Left90;
+	}
+	else if (TurnStartAngle >= TurnStart180Angle)
+	{
+		TurnStartDirection = EWarriorTurnStartDirection::Right180;
+	}
+	else
+	{
+		TurnStartDirection = EWarriorTurnStartDirection::Right90;
+	}
 	
 	LocomotionDirection = UKismetAnimationLibrary::CalculateDirection(GroundVelocity,OwningCharacter->GetActorRotation());
 

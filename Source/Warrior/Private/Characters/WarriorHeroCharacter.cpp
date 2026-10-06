@@ -22,6 +22,7 @@
 #include "GameFramework/PlayerController.h"
 #include "DataAssets/StartUpData/DataAsset_Hero_StartUpData.h"
 #include "Components/Combat/HeroCombatComponent.h"
+#include "Components/Inventory/WarriorInventoryComponent.h"
 #include "Components/UI/HeroUIComponent.h"
 #include "WarriorFunctionLibrary.h"
 #include "GameModes/WarriorBaseGameMode.h"
@@ -65,6 +66,8 @@ AWarriorHeroCharacter::AWarriorHeroCharacter()
 	HeroCombatComponent = CreateDefaultSubobject<UHeroCombatComponent>(TEXT("HeroCombatComponent"));
 	
 	HeroUIComponent = CreateDefaultSubobject<UHeroUIComponent>(TEXT("HeroUIComponent"));
+
+	WarriorInventoryComponent = CreateDefaultSubobject<UWarriorInventoryComponent>(TEXT("WarriorInventoryComponent"));
 }
 
 UPawnCombatComponent* AWarriorHeroCharacter::GetPawnCombatComponent() const
@@ -82,6 +85,11 @@ UHeroUIComponent* AWarriorHeroCharacter::GetHeroUIComponent() const
 {
 
 	return HeroUIComponent;
+}
+
+UWarriorInventoryComponent* AWarriorHeroCharacter::GetWarriorInventoryComponent() const
+{
+	return WarriorInventoryComponent;
 }
 
 void AWarriorHeroCharacter::SetRunning(bool bShouldRun)
@@ -108,6 +116,17 @@ float AWarriorHeroCharacter::GetDesiredMovementSpeed() const
 FVector2D AWarriorHeroCharacter::GetCachedMovementInputVector() const
 {
 	return CachedMovementInputVector;
+}
+
+bool AWarriorHeroCharacter::HasActiveTurnStartRequest() const
+{
+	const UWorld* World = GetWorld();
+	return World && World->GetTimeSeconds() <= ActiveTurnStartRequestEndTime;
+}
+
+float AWarriorHeroCharacter::GetActiveTurnStartAngle() const
+{
+	return HasActiveTurnStartRequest() ? ActiveTurnStartAngle : 0.f;
 }
 
 void AWarriorHeroCharacter::ApplyDesiredMovementSpeed()
@@ -214,6 +233,7 @@ void AWarriorHeroCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 	UWarriorInputComponent* WarriorInputComponent= CastChecked<UWarriorInputComponent>(PlayerInputComponent);
 	
 	// 绑定原生输入动作：将 DataAsset 中标记为 Move 的动作，触发时调用本类的 Input_Move
+	WarriorInputComponent->BindNativeInputAction(InputConfigDataAsset,WarriorGameplayTags::InputTag_Move,ETriggerEvent::Started,this,&ThisClass::Input_MoveStarted);
 	WarriorInputComponent->BindNativeInputAction(InputConfigDataAsset,WarriorGameplayTags::InputTag_Move,ETriggerEvent::Triggered,this,&ThisClass::Input_Move);
 	WarriorInputComponent->BindNativeInputAction(InputConfigDataAsset,WarriorGameplayTags::InputTag_Move,ETriggerEvent::Completed,this,&ThisClass::Input_MoveCompleted);
 	WarriorInputComponent->BindNativeInputAction(InputConfigDataAsset,WarriorGameplayTags::InputTag_Move,ETriggerEvent::Canceled,this,&ThisClass::Input_MoveCompleted);
@@ -236,10 +256,22 @@ void AWarriorHeroCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 	
 }
 
+void AWarriorHeroCharacter::Input_MoveStarted(const FInputActionValue& InputActionValue)
+{
+	const FVector2D MovementVector = InputActionValue.Get<FVector2D>();
+	CachedMovementInputVector = MovementVector;
+	TryStartInputTurnStart(MovementVector);
+}
+
 void AWarriorHeroCharacter::Input_Move(const FInputActionValue& InputActionValue)
 {				
 	const FVector2D MovementVector = InputActionValue.Get<FVector2D>();
 	CachedMovementInputVector = MovementVector;
+
+	if (ShouldHoldMovementForTurnStart())
+	{
+		return;
+	}
 
 	if (!MovementVector.IsNearlyZero() &&
 		UWarriorFunctionLibrary::NativeDoesActorHaveTag(this, WarriorGameplayTags::Player_Status_CanMoveCancel))
@@ -278,6 +310,7 @@ void AWarriorHeroCharacter::Input_Move(const FInputActionValue& InputActionValue
 void AWarriorHeroCharacter::Input_MoveCompleted(const FInputActionValue& InputActionValue)
 {
 	CachedMovementInputVector = FVector2D::ZeroVector;
+	TurnStartMovementHoldEndTime = 0.f;
 }
 
 void AWarriorHeroCharacter::Input_Look(const FInputActionValue& InputActionValue)
@@ -342,7 +375,64 @@ void AWarriorHeroCharacter::Input_ZoomOut()
 
 void AWarriorHeroCharacter::Input_AbilityInputPressed(FGameplayTag Input_Tag)
 {
-	if (Input_Tag.MatchesTagExact(WarriorGameplayTags::InputTag_Roll) &&
+	if (bRouteHeavyAttackThroughLightAttackHold)
+	{
+		if (ShouldBypassAttackHoldForAirAttack(Input_Tag))
+		{
+			HandleFinalAbilityInputPressed(Input_Tag);
+			return;
+		}
+
+		if (IsLightAttackInputTag(Input_Tag))
+		{
+			BeginAttackHold(Input_Tag);
+			return;
+		}
+
+		if (IsHeavyAttackInputTag(Input_Tag))
+		{
+			return;
+		}
+	}
+
+	HandleFinalAbilityInputPressed(Input_Tag);
+}
+
+void AWarriorHeroCharacter::Input_AbilityInputReleased(FGameplayTag Input_Tag)
+{
+	if (bRouteHeavyAttackThroughLightAttackHold && IsLightAttackInputTag(Input_Tag))
+	{
+		const bool bWasWaitingForAttack = bIsLightAttackInputHeld;
+		if (bWasWaitingForAttack && !bDidTriggerHeavyAttackFromHold &&
+			GetAttackHeldDuration() >= HeavyAttackHoldThreshold)
+		{
+			TriggerHeavyAttackFromHold();
+		}
+
+		const bool bShouldTriggerLightAttack = bWasWaitingForAttack && !bDidTriggerHeavyAttackFromHold;
+		const FGameplayTag LightAttackInputTag = PendingLightAttackInputTag;
+		const bool bShouldReleaseHeavyAttack = bWasWaitingForAttack && bDidTriggerHeavyAttackFromHold;
+		const FGameplayTag HeavyAttackInputTag = PendingHeavyAttackInputTag;
+		ResetAttackHoldState();
+
+		if (bShouldTriggerLightAttack)
+		{
+			HandleFinalAbilityInputPressed(LightAttackInputTag);
+		}
+		else if (bShouldReleaseHeavyAttack)
+		{
+			WarriorAbilitySystemComponent->OnAbilityInputReleased(HeavyAttackInputTag, true);
+		}
+
+		return;
+	}
+
+	WarriorAbilitySystemComponent->OnAbilityInputReleased(Input_Tag);
+}
+
+void AWarriorHeroCharacter::HandleFinalAbilityInputPressed(FGameplayTag InputTag)
+{
+	if (InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_Roll) &&
 		UWarriorFunctionLibrary::NativeDoesActorHaveTag(this, WarriorGameplayTags::Player_Status_CanDodgeCancel))
 	{
 		FGameplayEventData Data;
@@ -353,14 +443,123 @@ void AWarriorHeroCharacter::Input_AbilityInputPressed(FGameplayTag Input_Tag)
 		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, WarriorGameplayTags::Player_Event_DodgeCancel, Data);
 	}
 
-	TryFaceMovementInputForAttack(Input_Tag);
-	WarriorAbilitySystemComponent->OnAbilityInputPressed(Input_Tag);
+	TryFaceMovementInputForAttack(InputTag);
+	WarriorAbilitySystemComponent->OnAbilityInputPressed(InputTag);
 	
 }
 
-void AWarriorHeroCharacter::Input_AbilityInputReleased(FGameplayTag Input_Tag)
+void AWarriorHeroCharacter::BeginAttackHold(FGameplayTag InputTag)
 {
-	WarriorAbilitySystemComponent->OnAbilityInputReleased(Input_Tag);
+	ResetAttackHoldState();
+
+	PendingLightAttackInputTag = InputTag;
+	PendingHeavyAttackInputTag = ResolveHeavyAttackInputTagForHold(InputTag);
+	bIsLightAttackInputHeld = true;
+	bDidTriggerHeavyAttackFromHold = false;
+
+	if (const UWorld* World = GetWorld())
+	{
+		AttackHoldStartedTime = World->GetTimeSeconds();
+	}
+
+	if (HeavyAttackHoldThreshold <= 0.f)
+	{
+		TriggerHeavyAttackFromHold();
+		return;
+	}
+
+	GetWorldTimerManager().SetTimer(
+		AttackHoldTimerHandle,
+		this,
+		&ThisClass::TriggerHeavyAttackFromHold,
+		HeavyAttackHoldThreshold,
+		false);
+}
+
+void AWarriorHeroCharacter::TriggerHeavyAttackFromHold()
+{
+	if (!bIsLightAttackInputHeld || bDidTriggerHeavyAttackFromHold)
+	{
+		return;
+	}
+
+	bDidTriggerHeavyAttackFromHold = true;
+	GetWorldTimerManager().ClearTimer(AttackHoldTimerHandle);
+	HandleFinalAbilityInputPressed(PendingHeavyAttackInputTag);
+}
+
+void AWarriorHeroCharacter::ResetAttackHoldState()
+{
+	GetWorldTimerManager().ClearTimer(AttackHoldTimerHandle);
+	PendingLightAttackInputTag = FGameplayTag();
+	PendingHeavyAttackInputTag = FGameplayTag();
+	AttackHoldStartedTime = 0.f;
+	bIsLightAttackInputHeld = false;
+	bDidTriggerHeavyAttackFromHold = false;
+}
+
+float AWarriorHeroCharacter::GetAttackHeldDuration() const
+{
+	const UWorld* World = GetWorld();
+	if (!World || AttackHoldStartedTime <= 0.f)
+	{
+		return 0.f;
+	}
+
+	return World->GetTimeSeconds() - AttackHoldStartedTime;
+}
+
+void AWarriorHeroCharacter::TryStartInputTurnStart(const FVector2D& MovementVector)
+{
+	if (!bEnableInputTurnStart || !Controller || MovementVector.SizeSquared() < FMath::Square(AttackFacingInputThreshold))
+	{
+		return;
+	}
+
+	const UWorld* World = GetWorld();
+	if (!World || GetVelocity().Size2D() > InputTurnStartMaxGroundSpeed)
+	{
+		return;
+	}
+
+	const FRotator MovementRotator(0.f, Controller->GetControlRotation().Yaw, 0.f);
+	FVector DesiredDirection =
+		MovementRotator.RotateVector(FVector::ForwardVector) * MovementVector.Y +
+		MovementRotator.RotateVector(FVector::RightVector) * MovementVector.X;
+	DesiredDirection.Z = 0.f;
+
+	if (!DesiredDirection.Normalize())
+	{
+		return;
+	}
+
+	const float DesiredYaw = DesiredDirection.ToOrientationRotator().Yaw;
+	const float TurnAngle = FMath::FindDeltaAngleDegrees(GetActorRotation().Yaw, DesiredYaw);
+	if (FMath::Abs(TurnAngle) < InputTurnStartMinAngle)
+	{
+		return;
+	}
+
+	const float CurrentTime = World->GetTimeSeconds();
+	ActiveTurnStartAngle = TurnAngle;
+	ActiveTurnStartRequestEndTime = CurrentTime + InputTurnStartRequestDuration;
+	TurnStartMovementHoldEndTime = bHoldMovementDuringInputTurnStart
+		? CurrentTime + InputTurnStartMovementHoldDuration
+		: 0.f;
+}
+
+bool AWarriorHeroCharacter::ShouldHoldMovementForTurnStart() const
+{
+	const UWorld* World = GetWorld();
+	return World && World->GetTimeSeconds() <= TurnStartMovementHoldEndTime;
+}
+
+bool AWarriorHeroCharacter::ShouldBypassAttackHoldForAirAttack(FGameplayTag InputTag) const
+{
+	const UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
+	return MovementComponent &&
+		MovementComponent->IsFalling() &&
+		IsAttackInputTag(InputTag);
 }
 
 bool AWarriorHeroCharacter::CanJumpInternal_Implementation() const
@@ -383,7 +582,7 @@ bool AWarriorHeroCharacter::CanJumpInternal_Implementation() const
 
 	return HasJumpableFloor();
 }
-
+                                                                                                                                                                                                                                                                                                  
 bool AWarriorHeroCharacter::HasJumpableFloor() const
 {
 	const UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
@@ -436,14 +635,39 @@ bool AWarriorHeroCharacter::HasJumpableFloor() const
 
 bool AWarriorHeroCharacter::IsAttackInputTag(FGameplayTag InputTag) const
 {
-	return InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack_Axe) ||
-		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack) ||
-		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack_Axe) ||
-		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack) ||
-		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack_Axe_Air) ||
-		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack_Axe_Rage_Ground) ||
-		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_HeavyAttack_Axe_Rage_Ground) ||
-		InputTag.MatchesTagExact(WarriorGameplayTags::InputTag_LightAttack_Axe_Rage_Air);
+	return IsLightAttackInputTag(InputTag) || IsHeavyAttackInputTag(InputTag);
+}
+
+bool AWarriorHeroCharacter::IsLightAttackInputTag(FGameplayTag InputTag) const
+{
+	return InputTag.MatchesTag(WarriorGameplayTags::InputTag_LightAttack);
+}
+
+bool AWarriorHeroCharacter::IsHeavyAttackInputTag(FGameplayTag InputTag) const
+{
+	return InputTag.MatchesTag(WarriorGameplayTags::InputTag_HeavyAttack);
+}
+
+FGameplayTag AWarriorHeroCharacter::ResolveHeavyAttackInputTagForHold(FGameplayTag LightAttackInputTag) const
+{
+	const FString LightAttackTagName = WarriorGameplayTags::InputTag_LightAttack.GetTag().GetTagName().ToString();
+	const FString HeavyAttackTagName = WarriorGameplayTags::InputTag_HeavyAttack.GetTag().GetTagName().ToString();
+	const FString SourceTagName = LightAttackInputTag.GetTagName().ToString();
+
+	if (SourceTagName.StartsWith(LightAttackTagName))
+	{
+		const FString CandidateHeavyTagName =
+			SourceTagName.Replace(*LightAttackTagName, *HeavyAttackTagName, ESearchCase::CaseSensitive);
+		const FGameplayTag CandidateHeavyTag =
+			FGameplayTag::RequestGameplayTag(FName(*CandidateHeavyTagName), false);
+
+		if (CandidateHeavyTag.IsValid())
+		{
+			return CandidateHeavyTag;
+		}
+	}
+
+	return WarriorGameplayTags::InputTag_HeavyAttack;
 }
 
 bool AWarriorHeroCharacter::TryFaceMovementInputForAttack(FGameplayTag InputTag)

@@ -20,7 +20,7 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	void OnAbilityInputPressed(const FGameplayTag& InputTag);
-	void OnAbilityInputReleased(const FGameplayTag& InputTag);
+	void OnAbilityInputReleased(const FGameplayTag& InputTag, bool bForceRelease = false);
 
 	UFUNCTION(BlueprintPure, Category="Warroir|Ability|Input")
 	TArray<FGameplayTag> ResolveAbilityInputTagPriority(const FGameplayTag& InputTag) const;
@@ -73,6 +73,8 @@ protected:
 
 private:
 	bool TryHandleAbilityInput(const FGameplayTag& InputTag);
+	bool TryRouteComboInputToActiveAttackAbility(const FGameplayTag& InputTag);
+	void HandleActiveAbilityInput(FGameplayAbilitySpec& AbilitySpec, const FGameplayTag& InputTag);
 	void RegenerateBlockValue(float DeltaTime);
 	void BroadcastCurrentBlockValue(float CurrentBlockValue, float MaxBlockValue) const;
 
