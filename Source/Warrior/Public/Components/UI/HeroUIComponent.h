@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/UI/PawnUIComponent.h"
 #include  "WarriorGameplayTags.h"
+#include "WarriorTypes/WarriorEnergyTypes.h"
 #include "WarriorTypes/WarriorTeamTypes.h"
 #include "HeroUIComponent.generated.h"
 
@@ -21,6 +22,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStoneInteractedDelegate, bool,bSh
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTeamSwitchedDelegate, int32, NewSlotIndex);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBenchHealthChangedDelegate, int32, SlotIndex, float, HealthPercent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHeroEnergyPhaseUIChangedDelegate, EHeroEnergyPhase, NewPhase);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHeroEnergySkillPointsUIChangedDelegate, int32, CurrentSkillPoints, int32, RequiredSkillPoints);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHeroEnergyBoolUIChangedDelegate, bool, bIsActive);
 
 /**
 
@@ -36,6 +40,27 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="UI")
 	FOnPercentChangedDelegate OnCurrentBlockValueChanged;
+
+	UPROPERTY(BlueprintAssignable, Category="UI|HeroEnergy")
+	FOnPercentChangedDelegate OnCurrentHeroEnergyChanged;
+
+	UPROPERTY(BlueprintAssignable, Category="UI|HeroEnergy")
+	FOnHeroEnergyPhaseUIChangedDelegate OnHeroEnergyPhaseChanged;
+
+	UPROPERTY(BlueprintAssignable, Category="UI|HeroEnergy")
+	FOnHeroEnergySkillPointsUIChangedDelegate OnHeroEnergySkillPointsChanged;
+
+	UPROPERTY(BlueprintAssignable, Category="UI|HeroEnergy")
+	FOnHeroEnergyBoolUIChangedDelegate OnPhaseOneUltimateReadyChanged;
+
+	UPROPERTY(BlueprintAssignable, Category="UI|HeroEnergy")
+	FOnHeroEnergyBoolUIChangedDelegate OnEmpoweredHeavyReadyChanged;
+
+	UPROPERTY(BlueprintAssignable, Category="UI|HeroEnergy")
+	FOnHeroEnergyBoolUIChangedDelegate OnEmpoweredHeavyActiveChanged;
+
+	UPROPERTY(BlueprintAssignable, Category="UI|HeroEnergy")
+	FOnHeroEnergyBoolUIChangedDelegate OnSecondUltimateUnlockedChanged;
 
 	UPROPERTY(BlueprintCallable, BlueprintAssignable, Category="UI")
 	FOnAbilityIconSlotUpdate OnAbilityIconSlotUpdate;

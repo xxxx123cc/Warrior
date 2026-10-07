@@ -10,6 +10,7 @@
 #include "Characters/WarriorBaseCharacter.h"
 #include "Characters/WarriorHeroCharacter.h"
 #include "AbilitySystem/WarriorAttributeSet.h"
+#include "Components/Energy/HeroEnergyComponent.h"
 
 void UWarriorWidgetBase::NativeOnInitialized()
 {
@@ -65,6 +66,23 @@ void UWarriorWidgetBase::RefreshHeroUIComponent()
 						HeroUIComponent->OnCurrentBlockValueChanged.Broadcast(
 							AS->GetCurrentBlockValue() / MaxBlockValue);
 					}
+				}
+
+				if (const UHeroEnergyComponent* HeroEnergyComponent = Hero->GetHeroEnergyComponent())
+				{
+					HeroUIComponent->OnCurrentHeroEnergyChanged.Broadcast(HeroEnergyComponent->GetEnergyPercent());
+					HeroUIComponent->OnHeroEnergyPhaseChanged.Broadcast(HeroEnergyComponent->GetEnergyPhase());
+					HeroUIComponent->OnHeroEnergySkillPointsChanged.Broadcast(
+						HeroEnergyComponent->GetCurrentSkillPoints(),
+						HeroEnergyComponent->GetRequiredSkillPoints());
+					HeroUIComponent->OnPhaseOneUltimateReadyChanged.Broadcast(
+						HeroEnergyComponent->CanActivatePhaseOneUltimate());
+					HeroUIComponent->OnEmpoweredHeavyReadyChanged.Broadcast(
+						HeroEnergyComponent->CanStartEmpoweredHeavy());
+					HeroUIComponent->OnEmpoweredHeavyActiveChanged.Broadcast(
+						HeroEnergyComponent->IsEmpoweredHeavyActive());
+					HeroUIComponent->OnSecondUltimateUnlockedChanged.Broadcast(
+						HeroEnergyComponent->CanActivateSecondUltimate());
 				}
 			}
 

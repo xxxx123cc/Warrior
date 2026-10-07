@@ -99,6 +99,12 @@ namespace WarriorGameplayTags
 	WARRIOR_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Status_Rage_Active);
 	WARRIOR_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Status_Rage_Full);
 	WARRIOR_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Status_Rage_None);
+	WARRIOR_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Status_Energy_PhaseOne);
+	WARRIOR_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Status_Energy_PhaseTwo);
+	WARRIOR_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Status_Energy_PhaseOneUltimateReady);
+	WARRIOR_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Status_Energy_EmpoweredHeavyReady);
+	WARRIOR_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Status_Energy_EmpoweredHeavyActive);
+	WARRIOR_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Status_Energy_SecondUltimateUnlocked);
 	//自主设置
 	WARRIOR_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_SetByCaller_AttackType_Light);
 	WARRIOR_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_SetByCaller_AttackType_Heavy);

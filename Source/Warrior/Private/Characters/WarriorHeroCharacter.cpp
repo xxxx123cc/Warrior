@@ -22,6 +22,7 @@
 #include "GameFramework/PlayerController.h"
 #include "DataAssets/StartUpData/DataAsset_Hero_StartUpData.h"
 #include "Components/Combat/HeroCombatComponent.h"
+#include "Components/Energy/HeroEnergyComponent.h"
 #include "Components/Inventory/WarriorInventoryComponent.h"
 #include "Components/UI/HeroUIComponent.h"
 #include "WarriorFunctionLibrary.h"
@@ -68,6 +69,8 @@ AWarriorHeroCharacter::AWarriorHeroCharacter()
 	HeroUIComponent = CreateDefaultSubobject<UHeroUIComponent>(TEXT("HeroUIComponent"));
 
 	WarriorInventoryComponent = CreateDefaultSubobject<UWarriorInventoryComponent>(TEXT("WarriorInventoryComponent"));
+
+	HeroEnergyComponent = CreateDefaultSubobject<UHeroEnergyComponent>(TEXT("HeroEnergyComponent"));
 }
 
 UPawnCombatComponent* AWarriorHeroCharacter::GetPawnCombatComponent() const
@@ -90,6 +93,11 @@ UHeroUIComponent* AWarriorHeroCharacter::GetHeroUIComponent() const
 UWarriorInventoryComponent* AWarriorHeroCharacter::GetWarriorInventoryComponent() const
 {
 	return WarriorInventoryComponent;
+}
+
+UHeroEnergyComponent* AWarriorHeroCharacter::GetHeroEnergyComponent() const
+{
+	return HeroEnergyComponent;
 }
 
 void AWarriorHeroCharacter::SetRunning(bool bShouldRun)

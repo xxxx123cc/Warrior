@@ -7,6 +7,7 @@
 #include "WarriorFunctionLibrary.h"
 #include "WarriorGameplayTags.h"
 #include "Chaos/Deformable/MuscleActivationConstraints.h"
+#include "Components/Energy/HeroEnergyComponent.h"
 #include "Components/UI/HeroUIComponent.h"
 #include "Components/UI/EnemyUIComponent.h"
 #include "Interfaces/PawnUIInterface.h"
@@ -112,8 +113,26 @@ void UWarriorAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffec
 		const float OldHealth = GetCurrentHealth();
 		const float DamageDone=GetDamageTaken();
 		const float NewCurrentHealth = FMath::Clamp(OldHealth - DamageDone, 0.f, GetMaxHealth());
+		const float ActualDamageDone = FMath::Max(OldHealth - NewCurrentHealth, 0.f);
 		SetCurrentHealth(NewCurrentHealth);
 		PawnUIComponent->OnCurrentHealthChanged.Broadcast(NewCurrentHealth / GetMaxHealth());
+		if (ActualDamageDone > 0.f)
+		{
+			AActor* SourceActor = Data.EffectSpec.GetContext().GetInstigator();
+			if (!SourceActor)
+			{
+				SourceActor = Data.EffectSpec.GetContext().GetEffectCauser();
+			}
+
+			AActor* TargetActor = Data.Target.GetAvatarActor();
+			if (SourceActor && SourceActor != TargetActor)
+			{
+				if (UHeroEnergyComponent* SourceEnergyComponent = SourceActor->FindComponentByClass<UHeroEnergyComponent>())
+				{
+					SourceEnergyComponent->AddEnergyFromDamage(ActualDamageDone);
+				}
+			}
+		}
 		//const FString DebugString= FString::Printf(TEXT("DamageTaken: %f, OldHealth: %f, NewHealth: %f"),DamageDone,OldHealth,NewCurrentHealth);
 		//Debug::print(DebugString);
 		//处理角色死亡

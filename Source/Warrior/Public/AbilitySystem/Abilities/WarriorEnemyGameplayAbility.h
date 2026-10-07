@@ -9,6 +9,7 @@
 
 class AWarriorEnemyCharacter;
 class UEnemyCombatComponent;
+struct FOverlapResult;
 /**
  * 
  */
@@ -65,6 +66,23 @@ public:
 		float Radius,
 		const FWarriorAttackImpactData& AttackImpactData,
 		bool bDrawDebug = false);
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|Ability|AOE", meta=(DisplayName="Apply Enemy Damage In Forward Box"))
+	int32 ApplyEnemyDamageEffectSpecHandleToPawnsInForwardBox(
+		const FGameplayEffectSpecHandle& InEffectSpecHandle,
+		FVector Origin,
+		FVector BoxHalfSize,
+		bool bCanBeBlocked = true,
+		float BlockCost = 1.f,
+		bool bDrawDebug = false);
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|Ability|AOE", meta=(DisplayName="Apply Enemy Damage In Forward Box With Attack Impact"))
+	int32 ApplyEnemyDamageEffectSpecHandleToPawnsInForwardBoxWithAttackImpactData(
+		const FGameplayEffectSpecHandle& InEffectSpecHandle,
+		FVector Origin,
+		FVector BoxHalfSize,
+		const FWarriorAttackImpactData& AttackImpactData,
+		bool bDrawDebug = false);
 	
 	
 	
@@ -81,5 +99,17 @@ private:
 		float Radius,
 		const FWarriorAttackImpactData& AttackImpactData,
 		bool bDrawDebug);
+
+	int32 ApplyEnemyDamageEffectSpecHandleToPawnsInForwardBoxInternal(
+		const FGameplayEffectSpecHandle& InEffectSpecHandle,
+		FVector Origin,
+		FVector BoxHalfSize,
+		const FWarriorAttackImpactData& AttackImpactData,
+		bool bDrawDebug);
+
+	int32 ApplyEnemyDamageEffectSpecHandleToOverlapResults(
+		const FGameplayEffectSpecHandle& InEffectSpecHandle,
+		const TArray<FOverlapResult>& OverlapResults,
+		const FWarriorAttackImpactData& AttackImpactData);
 	
 };

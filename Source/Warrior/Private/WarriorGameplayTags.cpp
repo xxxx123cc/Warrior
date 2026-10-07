@@ -94,6 +94,12 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Rage_Active,"Player.Status.Rage.Active");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Rage_Full,"Player.Status.Rage.Full");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Rage_None,"Player.Status.Rage.None");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Energy_PhaseOne,"Player.Status.Energy.PhaseOne");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Energy_PhaseTwo,"Player.Status.Energy.PhaseTwo");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Energy_PhaseOneUltimateReady,"Player.Status.Energy.PhaseOneUltimateReady");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Energy_EmpoweredHeavyReady,"Player.Status.Energy.EmpoweredHeavyReady");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Energy_EmpoweredHeavyActive,"Player.Status.Energy.EmpoweredHeavyActive");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Energy_SecondUltimateUnlocked,"Player.Status.Energy.SecondUltimateUnlocked");
 
 	//自主设置
 	UE_DEFINE_GAMEPLAY_TAG(Player_SetByCaller_AttackType_Light,"Player.SetByCaller.AttackType.Light");

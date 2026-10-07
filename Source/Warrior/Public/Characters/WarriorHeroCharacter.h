@@ -16,6 +16,7 @@ struct FInputActionValue;
 class UHeroCombatComponent;
 class UHeroUIComponent	;
 class UWarriorInventoryComponent;
+class UHeroEnergyComponent;
 /**
 
  */
@@ -33,6 +34,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Warrior|Inventory")
 	UWarriorInventoryComponent* GetWarriorInventoryComponent() const;
+
+	UFUNCTION(BlueprintPure, Category="Warrior|HeroEnergy")
+	UHeroEnergyComponent* GetHeroEnergyComponent() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Movement|Run")
 	void SetRunning(bool bShouldRun);
@@ -90,6 +94,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory", meta=(AllowPrivateAccess="true"))
 	UWarriorInventoryComponent* WarriorInventoryComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="HeroEnergy", meta=(AllowPrivateAccess="true"))
+	UHeroEnergyComponent* HeroEnergyComponent;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|Run", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
 	float WalkSpeed = 300.f;
