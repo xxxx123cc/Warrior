@@ -4,6 +4,8 @@
 #include "Characters/WarriorEnemyCharacter.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "WarriorFunctionLibrary.h"
 #include "WarriorGameplayTags.h"
 #include "components/CapsuleComponent.h"
@@ -18,8 +20,16 @@
 #include "GameModes/WarriorBaseGameMode.h"
 #include "Misc/MapErrors.h"
 
+namespace
+{
+	const FName TargetActorKeyName(TEXT("TargetActor"));
+}
+
 AWarriorEnemyCharacter::AWarriorEnemyCharacter()
 {
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = true;
+
 	SetActorHiddenInGame(true);
 
 	//ai
@@ -54,6 +64,13 @@ AWarriorEnemyCharacter::AWarriorEnemyCharacter()
 	
 	EnemyHealthBarWidget= CreateDefaultSubobject<UWidgetComponent>("EnemyHealthBarWidget");
 	EnemyHealthBarWidget->SetupAttachment(GetMesh());
+}
+
+void AWarriorEnemyCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	UpdateTargetContactMovement();
 }
 
 UPawnCombatComponent* AWarriorEnemyCharacter::GetPawnCombatComponent() const
@@ -101,6 +118,7 @@ void AWarriorEnemyCharacter::PossessedBy(AController* NewController)
 void AWarriorEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
 	UWarriorWidgetBase* EnemyHealthWidget = Cast<UWarriorWidgetBase>(EnemyHealthBarWidget->GetUserWidgetObject());
 	{
 		if (EnemyHealthWidget)
@@ -133,6 +151,97 @@ void AWarriorEnemyCharacter::OnBodyCollisionBoxEndOverlap(UPrimitiveComponent* O
 {
 	
 	
+}
+
+void AWarriorEnemyCharacter::UpdateTargetContactMovement()
+{
+	if (!bStopMovementWhenTouchingTarget)
+	{
+		SetTargetContactMovementHeld(false);
+		return;
+	}
+
+	const AActor* TargetActor = GetCurrentTargetActor();
+	const float ContactDistance = GetTargetContactDistance(TargetActor);
+	if (!TargetActor || ContactDistance <= 0.f)
+	{
+		SetTargetContactMovementHeld(false);
+		return;
+	}
+
+	const float StopDistance = ContactDistance + FMath::Max(0.f, TargetContactStopBuffer);
+	const float ReleaseDistance = ContactDistance + FMath::Max(TargetContactReleaseBuffer, TargetContactStopBuffer);
+	const float DistanceThreshold = bMovementHeldByTargetContact ? ReleaseDistance : StopDistance;
+
+	const float Distance2D = FVector::Dist2D(GetActorLocation(), TargetActor->GetActorLocation());
+	SetTargetContactMovementHeld(Distance2D <= DistanceThreshold);
+}
+
+void AWarriorEnemyCharacter::SetTargetContactMovementHeld(bool bShouldHold)
+{
+	UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
+	if (!MovementComponent)
+	{
+		bMovementHeldByTargetContact = false;
+		MaxWalkSpeedBeforeTargetContactHold = 0.f;
+		return;
+	}
+
+	if (bShouldHold)
+	{
+		if (!bMovementHeldByTargetContact)
+		{
+			MaxWalkSpeedBeforeTargetContactHold = MovementComponent->MaxWalkSpeed;
+			bMovementHeldByTargetContact = true;
+		}
+
+		MovementComponent->MaxWalkSpeed = 0.f;
+		MovementComponent->StopMovementImmediately();
+		return;
+	}
+
+	if (bMovementHeldByTargetContact)
+	{
+		MovementComponent->MaxWalkSpeed = FMath::Max(0.f, MaxWalkSpeedBeforeTargetContactHold);
+		bMovementHeldByTargetContact = false;
+		MaxWalkSpeedBeforeTargetContactHold = 0.f;
+	}
+}
+
+AActor* AWarriorEnemyCharacter::GetCurrentTargetActor() const
+{
+	const AAIController* AIController = Cast<AAIController>(GetController());
+	const UBlackboardComponent* BlackboardComponent = AIController ? AIController->GetBlackboardComponent() : nullptr;
+
+	return BlackboardComponent
+		? Cast<AActor>(BlackboardComponent->GetValueAsObject(TargetActorKeyName))
+		: nullptr;
+}
+
+float AWarriorEnemyCharacter::GetTargetContactDistance(const AActor* TargetActor) const
+{
+	if (!TargetActor || TargetActor == this)
+	{
+		return 0.f;
+	}
+
+	const UCapsuleComponent* EnemyCapsuleComponent = GetCapsuleComponent();
+	const float EnemyRadius = EnemyCapsuleComponent ? EnemyCapsuleComponent->GetScaledCapsuleRadius() : 0.f;
+
+	float TargetRadius = 0.f;
+	if (const ACharacter* TargetCharacter = Cast<ACharacter>(TargetActor))
+	{
+		if (const UCapsuleComponent* TargetCapsuleComponent = TargetCharacter->GetCapsuleComponent())
+		{
+			TargetRadius = TargetCapsuleComponent->GetScaledCapsuleRadius();
+		}
+	}
+	else if (const UCapsuleComponent* TargetCapsuleComponent = TargetActor->FindComponentByClass<UCapsuleComponent>())
+	{
+		TargetRadius = TargetCapsuleComponent->GetScaledCapsuleRadius();
+	}
+
+	return EnemyRadius + TargetRadius;
 }
 
 void AWarriorEnemyCharacter::InitEnemyStartUpData()

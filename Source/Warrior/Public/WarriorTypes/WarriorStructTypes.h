@@ -54,6 +54,36 @@ struct FWarriorAttackImpactData
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FWarriorHeavyAttackMultiSlashData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Targeting", meta=(ClampMin="0.0"))
+	float FrontTraceDistance = 650.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Targeting")
+	FVector FrontTraceBoxHalfSize = FVector(300.f, 260.f, 140.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Pull", meta=(ClampMin="0.0"))
+	float PullSphereCenterDistance = 320.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Pull")
+	float PullSphereHeightOffset = 60.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Pull", meta=(ClampMin="0.0"))
+	float PullSphereRadius = 180.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage", meta=(ClampMin="1"))
+	int32 SlashCount = 5;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage", meta=(ClampMin="0.0"))
+	float SlashInterval = 0.12f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Debug")
+	bool bDrawDebug = false;
+};
+
 USTRUCT(Blueprintable)
 struct FWarriorHeroAbilitySets
 {

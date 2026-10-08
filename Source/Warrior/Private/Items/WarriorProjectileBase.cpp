@@ -40,6 +40,11 @@ AWarriorProjectileBase::AWarriorProjectileBase()
 	InitialLifeSpan = 4.f;
 }
 
+void AWarriorProjectileBase::SetProjectileDamageHandle(const FGameplayEffectSpecHandle& InProjectileDamageHandle)
+{
+	ProjectileDamageHandle = InProjectileDamageHandle;
+}
+
 void AWarriorProjectileBase::BeginPlay()
 {
 	Super::BeginPlay();

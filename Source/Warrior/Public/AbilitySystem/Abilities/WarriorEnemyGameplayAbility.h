@@ -4,11 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystem/Abilities/WarriorGameplayAbility.h"
+#include "Items/WarriorMovingRectangleDamageArea.h"
 #include "WarriorTypes/WarriorStructTypes.h"
 #include "WarriorEnemyGameplayAbility.generated.h"
 
+class AWarriorMovingRectangleDamageArea;
 class AWarriorEnemyCharacter;
 class UEnemyCombatComponent;
+class UGameplayEffect;
 struct FOverlapResult;
 /**
  * 
@@ -83,6 +86,16 @@ public:
 		FVector BoxHalfSize,
 		const FWarriorAttackImpactData& AttackImpactData,
 		bool bDrawDebug = false);
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|Ability|AOE", meta=(DisplayName="Spawn Moving Rectangle Damage Area"))
+	AWarriorMovingRectangleDamageArea* SpawnMovingRectangleDamageArea(
+		TSubclassOf<AWarriorMovingRectangleDamageArea> DamageAreaClass,
+		TSubclassOf<UGameplayEffect> DamageEffectClass,
+		const FScalableFloat& DamageScalableFloat,
+		const FWarriorAttackImpactData& AttackImpactData,
+		const FWarriorMovingRectangleDamageAreaConfig& DamageAreaConfig,
+		float SpawnForwardOffset = 0.f,
+		float SpawnHeightOffset = 0.f);
 	
 	
 	

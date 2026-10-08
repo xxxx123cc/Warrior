@@ -532,22 +532,8 @@ bool UWarriorFunctionLibrary::ApplyBossPoiseDamage(
 		return false;
 	}
 
-	TargetASC->AddLooseGameplayTag(WarriorGameplayTags::Enemy_Status_PoiseBroken);
-	TargetASC->AddLooseGameplayTag(WarriorGameplayTags::Enemy_Status_Stunned);
 	TargetASC->CancelAbilities();
-
-	float PreviousAnimRootMotionTranslationScale = 1.f;
-	if (ACharacter* TargetCharacter = Cast<ACharacter>(InTarget))
-	{
-		PreviousAnimRootMotionTranslationScale = TargetCharacter->GetAnimRootMotionTranslationScale();
-		TargetCharacter->SetAnimRootMotionTranslationScale(0.f);
-
-		if (UCharacterMovementComponent* MovementComponent = TargetCharacter->GetCharacterMovement())
-		{
-			MovementComponent->StopMovementImmediately();
-			MovementComponent->DisableMovement();
-		}
-	}
+	TargetASC->AddLooseGameplayTag(WarriorGameplayTags::Enemy_Status_PoiseBroken);
 
 	FGameplayEventData EventData;
 	EventData.EventTag = WarriorGameplayTags::Enemy_Event_PoiseBreak;
@@ -560,6 +546,8 @@ bool UWarriorFunctionLibrary::ApplyBossPoiseDamage(
 		WarriorGameplayTags::Enemy_Event_PoiseBreak,
 		EventData);
 
+	TargetASC->AddLooseGameplayTag(WarriorGameplayTags::Enemy_Status_Stunned);
+
 	if (UWorld* World = InTarget->GetWorld())
 	{
 		FTimerHandle PoiseRecoveryTimer;
@@ -567,7 +555,7 @@ bool UWarriorFunctionLibrary::ApplyBossPoiseDamage(
 		TWeakObjectPtr<UWarriorAbilitySystemComponent> WeakTargetASC = TargetASC;
 		const float RecoveryDelay = FMath::Max(0.f, StunDuration);
 
-		World->GetTimerManager().SetTimer(PoiseRecoveryTimer, [WeakTarget, WeakTargetASC, MaxBossPoise, PreviousAnimRootMotionTranslationScale]()
+		World->GetTimerManager().SetTimer(PoiseRecoveryTimer, [WeakTarget, WeakTargetASC, MaxBossPoise]()
 		{
 			if (!WeakTarget.IsValid() || !WeakTargetASC.IsValid())
 			{
@@ -583,16 +571,6 @@ bool UWarriorFunctionLibrary::ApplyBossPoiseDamage(
 			WeakTargetASC->RemoveLooseGameplayTag(WarriorGameplayTags::Enemy_Status_Stunned);
 			WeakTargetASC->SetNumericAttributeBase(UWarriorAttributeSet::GetCurrentBossPoiseAttribute(), MaxBossPoise);
 			BroadcastBossPoiseChanged(WeakTarget.Get(), MaxBossPoise, MaxBossPoise);
-
-			if (ACharacter* TargetCharacter = Cast<ACharacter>(WeakTarget.Get()))
-			{
-				TargetCharacter->SetAnimRootMotionTranslationScale(PreviousAnimRootMotionTranslationScale);
-
-				if (UCharacterMovementComponent* MovementComponent = TargetCharacter->GetCharacterMovement())
-				{
-					MovementComponent->SetMovementMode(MOVE_Walking);
-				}
-			}
 		}, RecoveryDelay, false);
 	}
 

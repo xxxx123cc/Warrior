@@ -19,6 +19,8 @@ class WARRIOR_API AWarriorEnemyCharacter : public AWarriorBaseCharacter
 	GENERATED_BODY()
 public:
 	AWarriorEnemyCharacter();
+
+	virtual void Tick(float DeltaSeconds) override;
 	
 	virtual UPawnCombatComponent* GetPawnCombatComponent() const override ;
 	
@@ -36,6 +38,15 @@ protected:
 	virtual void PossessedBy(AController* NewController) override;
 	
 	virtual void BeginPlay() override;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Movement|Contact")
+	bool bStopMovementWhenTouchingTarget = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Movement|Contact", meta=(ClampMin="0.0", EditCondition="bStopMovementWhenTouchingTarget"))
+	float TargetContactStopBuffer = 8.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Movement|Contact", meta=(ClampMin="0.0", EditCondition="bStopMovementWhenTouchingTarget"))
+	float TargetContactReleaseBuffer = 24.f;
 	
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="combat")
 	UEnemyCombatComponent* EnemyCombatComponent;
@@ -66,6 +77,14 @@ protected:
 	
 private:
 	void InitEnemyStartUpData();
+
+	void UpdateTargetContactMovement();
+	void SetTargetContactMovementHeld(bool bShouldHold);
+	AActor* GetCurrentTargetActor() const;
+	float GetTargetContactDistance(const AActor* TargetActor) const;
+
+	bool bMovementHeldByTargetContact = false;
+	float MaxWalkSpeedBeforeTargetContactHold = 0.f;
 	
 	 
 	

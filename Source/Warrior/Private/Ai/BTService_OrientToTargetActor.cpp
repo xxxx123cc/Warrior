@@ -2,10 +2,13 @@
 
 
 #include "Ai/BTService_OrientToTargetActor.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardData.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "WarriorGameplayTags.h"
 
 UBTService_OrientToTargetActor::UBTService_OrientToTargetActor()
 {
@@ -15,6 +18,8 @@ UBTService_OrientToTargetActor::UBTService_OrientToTargetActor()
 	
 	RotationSpeed = 5.f;
 	Interval = 0.f; 
+	BlockedStatusTags.AddTag(WarriorGameplayTags::Enemy_Status_PoiseBroken);
+	BlockedStatusTags.AddTag(WarriorGameplayTags::Enemy_Status_Stunned);
 	RandomDeviation = 0.f; // 不需要随机偏差，保持朝向稳定
 	//TargetActorKey 只能选择 Blackboard 中类型为 AActor/Object(AActor子类) 的 Key
 	TargetActorKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(ThisClass, TargetActorKey), AActor::StaticClass());
@@ -51,6 +56,18 @@ void UBTService_OrientToTargetActor::TickNode(UBehaviorTreeComponent& OwnerComp,
 	AActor* TargetActor = Cast<AActor>(ActorObject);
 
 	APawn* OwningPawn = OwnerComp.GetAIOwner()->GetPawn();
+
+	if (OwningPawn && !BlockedStatusTags.IsEmpty())
+	{
+		if (const UAbilitySystemComponent* AbilitySystemComponent =
+			UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OwningPawn))
+		{
+			if (AbilitySystemComponent->HasAnyMatchingGameplayTags(BlockedStatusTags))
+			{
+				return;
+			}
+		}
+	}
 
 	if (OwningPawn && TargetActor)
 	{

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystem/Abilities/WarriorGameplayAbility.h"
+#include "WarriorTypes/WarriorStructTypes.h"
 #include "WarriorHeroGameplayAbility.generated.h"
 
 class AWarriorHeroCharacter;
@@ -43,11 +44,36 @@ public:
 	//
 	UFUNCTION(BlueprintPure,Category="Warrior|Ability")
 	FGameplayEffectSpecHandle HeroDamageEffectHandle(TSubclassOf<UGameplayEffect>EffectClass,float InWeaponBaseDamage,FGameplayTag InCurrentAttackTypeTag,int32 InUsedComboCount);
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|Ability|Attack", meta=(AutoCreateRefTerm="ObjectTypes", DisplayName="Pull Front Targets And Multi Slash Damage"))
+	TArray<AActor*> PullFrontTargetsAndApplyMultiSlashDamage(
+		const FGameplayEffectSpecHandle& InEffectSpecHandle,
+		const FWarriorHeavyAttackMultiSlashData& SlashData,
+		const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes);
 	
 	UFUNCTION(BlueprintCallable,Category="Warrior|Ability")
 	bool GetAbilityRemainingCooldownByTag(FGameplayTag CooldownTag,float& TimeRemaining,float& TotalCooldownTime);
 	
 private:
+	TArray<AActor*> FindHostileTargetsInFront(
+		const FWarriorHeavyAttackMultiSlashData& SlashData,
+		const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes) const;
+
+	FVector GetMultiSlashPullSphereCenter(const FWarriorHeavyAttackMultiSlashData& SlashData) const;
+
+	FVector GetMultiSlashTargetLocation(
+		const FWarriorHeavyAttackMultiSlashData& SlashData,
+		int32 TargetIndex,
+		int32 TargetCount) const;
+
+	void PullTargetToMultiSlashSphere(AActor* TargetActor, const FVector& TargetLocation) const;
+
+	void ApplyMultiSlashHit(
+		const FGameplayEffectSpecHandle& InEffectSpecHandle,
+		const FWarriorAttackImpactData& AttackImpactData,
+		const TArray<TWeakObjectPtr<AActor>>& Targets,
+		const TArray<FVector>& PullLocations);
+
 	//弱指针引用缓存角色，指向 UObject/AActor 的弱指针，不会阻止对象被 GC/销毁；对象没了它会自动变成无效（不会变成悬空野指针）。-4.1
 	mutable TWeakObjectPtr<AWarriorHeroCharacter> CachedHeroCharacter;
 	//弱指针引用缓存控制器

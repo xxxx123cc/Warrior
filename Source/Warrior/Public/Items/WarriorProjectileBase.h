@@ -29,6 +29,9 @@ public:
 	// Sets default values for this actor's properties
 	AWarriorProjectileBase();
 
+	UFUNCTION(BlueprintCallable, Category="Projectile")
+	void SetProjectileDamageHandle(const FGameplayEffectSpecHandle& InProjectileDamageHandle);
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

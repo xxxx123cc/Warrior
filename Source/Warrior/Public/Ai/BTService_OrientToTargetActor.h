@@ -5,6 +5,7 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTService.h"
+#include "GameplayTagContainer.h"
 #include "BTService_OrientToTargetActor.generated.h"
 
 /**
@@ -31,6 +32,9 @@ class WARRIOR_API UBTService_OrientToTargetActor : public UBTService
 	// 旋转速度，值越大旋转越快
 	UPROPERTY(EditAnywhere, Category = "Rotation")
 	float RotationSpeed ; 
+
+	UPROPERTY(EditAnywhere, Category = "Rotation")
+	FGameplayTagContainer BlockedStatusTags;
 	
 	
 };

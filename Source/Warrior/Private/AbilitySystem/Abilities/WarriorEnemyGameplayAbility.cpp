@@ -10,6 +10,8 @@
 #include "Components/Combat/EnemyCombatComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/OverlapResult.h"
+#include "GameFramework/Pawn.h"
+#include "Kismet/GameplayStatics.h"
 #include "WarriorFunctionLibrary.h"
 #include "WarriorGameplayTags.h"
 
@@ -189,6 +191,68 @@ int32 UWarriorEnemyGameplayAbility::ApplyEnemyDamageEffectSpecHandleToPawnsInFor
 		BoxHalfSize,
 		AttackImpactData,
 		bDrawDebug);
+}
+
+AWarriorMovingRectangleDamageArea* UWarriorEnemyGameplayAbility::SpawnMovingRectangleDamageArea(
+	TSubclassOf<AWarriorMovingRectangleDamageArea> DamageAreaClass,
+	TSubclassOf<UGameplayEffect> DamageEffectClass,
+	const FScalableFloat& DamageScalableFloat,
+	const FWarriorAttackImpactData& AttackImpactData,
+	const FWarriorMovingRectangleDamageAreaConfig& DamageAreaConfig,
+	float SpawnForwardOffset,
+	float SpawnHeightOffset)
+{
+	APawn* OwningPawn = Cast<APawn>(GetAvatarActorFromActorInfo());
+	UWorld* World = OwningPawn ? OwningPawn->GetWorld() : nullptr;
+	if (!World || !OwningPawn || !DamageAreaClass || !DamageEffectClass)
+	{
+		return nullptr;
+	}
+
+	FGameplayEffectSpecHandle DamageSpecHandle =
+		EnemyDamageEffectHandleWithAttackImpactData(
+			DamageEffectClass,
+			DamageScalableFloat,
+			AttackImpactData);
+
+	if (!DamageSpecHandle.IsValid() || !DamageSpecHandle.Data.IsValid())
+	{
+		return nullptr;
+	}
+
+	FVector ForwardDirection = OwningPawn->GetActorForwardVector();
+	ForwardDirection.Z = 0.f;
+	if (!ForwardDirection.Normalize())
+	{
+		ForwardDirection = FVector::ForwardVector;
+	}
+
+	const FVector SpawnLocation =
+		OwningPawn->GetActorLocation() +
+		ForwardDirection * SpawnForwardOffset +
+		FVector::UpVector * SpawnHeightOffset;
+	FRotator SpawnRotation = ForwardDirection.ToOrientationRotator();
+	SpawnRotation.Pitch = 0.f;
+	SpawnRotation.Roll = 0.f;
+
+	const FTransform SpawnTransform(SpawnRotation, SpawnLocation);
+	AWarriorMovingRectangleDamageArea* DamageArea =
+		World->SpawnActorDeferred<AWarriorMovingRectangleDamageArea>(
+			DamageAreaClass,
+			SpawnTransform,
+			OwningPawn,
+			OwningPawn,
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+
+	if (!DamageArea)
+	{
+		return nullptr;
+	}
+
+	DamageArea->InitializeDamageArea(OwningPawn, DamageSpecHandle, DamageAreaConfig);
+	UGameplayStatics::FinishSpawningActor(DamageArea, SpawnTransform);
+
+	return DamageArea;
 }
 
 int32 UWarriorEnemyGameplayAbility::ApplyEnemyDamageEffectSpecHandleToPawnsInRadiusInternal(
