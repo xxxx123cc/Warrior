@@ -117,6 +117,7 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Melee,"Enemy.Ability.Melee");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_SpawnStones,"Enemy.Ability.SpawnStones");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_MovingRectangleDamage,"Enemy.Ability.MovingRectangleDamage");
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_TripleSwordQi,"Enemy.Ability.TripleSwordQi");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_Strafing,"Enemy.Status.Strafing");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_UnderAttack,"Enemy.Status.UnderAttack");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_UnBlockable,"Enemy.Status.UnBlockable");

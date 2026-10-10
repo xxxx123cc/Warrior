@@ -50,7 +50,7 @@ public:
 		const FGameplayEffectSpecHandle& InEffectSpecHandle,
 		const FWarriorHeavyAttackMultiSlashData& SlashData,
 		const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes);
-	
+
 	UFUNCTION(BlueprintCallable,Category="Warrior|Ability")
 	bool GetAbilityRemainingCooldownByTag(FGameplayTag CooldownTag,float& TimeRemaining,float& TotalCooldownTime);
 	

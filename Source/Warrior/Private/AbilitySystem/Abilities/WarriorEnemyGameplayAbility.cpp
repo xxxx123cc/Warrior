@@ -255,6 +255,85 @@ AWarriorMovingRectangleDamageArea* UWarriorEnemyGameplayAbility::SpawnMovingRect
 	return DamageArea;
 }
 
+int32 UWarriorEnemyGameplayAbility::FireTripleSwordQiDamage(const FWarriorTripleSwordQiData& SwordQiData)
+{
+	APawn* OwningPawn = Cast<APawn>(GetAvatarActorFromActorInfo());
+	UWorld* World = OwningPawn ? OwningPawn->GetWorld() : nullptr;
+	if (!World || !OwningPawn || !SwordQiData.DamageEffectClass)
+	{
+		return 0;
+	}
+
+	FVector BoxSize(
+		FMath::Abs(SwordQiData.CollisionBoxSize.X),
+		FMath::Abs(SwordQiData.CollisionBoxSize.Y),
+		FMath::Abs(SwordQiData.CollisionBoxSize.Z));
+	if (BoxSize.X <= 0.f || BoxSize.Y <= 0.f || BoxSize.Z <= 0.f)
+	{
+		return 0;
+	}
+
+	FGameplayEffectSpecHandle DamageSpecHandle =
+		EnemyDamageEffectHandleWithAttackImpactData(
+			SwordQiData.DamageEffectClass,
+			SwordQiData.DamageScalableFloat,
+			SwordQiData.AttackImpactData);
+	if (!DamageSpecHandle.IsValid() || !DamageSpecHandle.Data.IsValid())
+	{
+		return 0;
+	}
+
+	constexpr int32 SwordQiCount = 3;
+	const FRotator BaseYawRotation(0.f, OwningPawn->GetActorRotation().Yaw, 0.f);
+	const FVector ForwardVector = BaseYawRotation.Vector().GetSafeNormal();
+	const FVector RightVector = FRotationMatrix(BaseYawRotation).GetUnitAxis(EAxis::Y);
+	const float ForwardOffset = FMath::Max(0.f, SwordQiData.SpawnForwardOffset);
+	const float SideSpawnOffset = FMath::Max(0.f, SwordQiData.SideSpawnOffset);
+	const float SideAngleDegrees = FMath::Clamp(SwordQiData.SideAngleDegrees, 0.f, 89.f);
+
+	FWarriorMovingRectangleDamageAreaConfig DamageAreaConfig;
+	DamageAreaConfig.DamageBoxSize = BoxSize;
+	DamageAreaConfig.TravelDistance = FMath::Max(0.f, SwordQiData.TravelDistance);
+	DamageAreaConfig.MoveSpeed = FMath::Max(0.f, SwordQiData.MoveSpeed);
+	DamageAreaConfig.WarningDuration = 0.f;
+	DamageAreaConfig.bHideWarningWhenDamageStarts = true;
+	DamageAreaConfig.DamageBoxGroundOffset = SwordQiData.DamageBoxGroundOffset;
+	DamageAreaConfig.bDamageTargetsOnlyOnce = SwordQiData.bDamageTargetsOnlyOnce;
+	DamageAreaConfig.bDrawDebugDamageBox = SwordQiData.bDrawDebugCollision;
+
+	int32 SpawnedCollisionCount = 0;
+	for (int32 SwordQiIndex = 0; SwordQiIndex < SwordQiCount; ++SwordQiIndex)
+	{
+		const float SideIndex = static_cast<float>(SwordQiIndex - 1);
+		const float SpawnYaw = BaseYawRotation.Yaw + SideIndex * SideAngleDegrees;
+		const FRotator SpawnRotation(0.f, SpawnYaw, 0.f);
+		const FVector SpawnLocation =
+			OwningPawn->GetActorLocation() +
+			ForwardVector * ForwardOffset +
+			RightVector * SideIndex * SideSpawnOffset;
+		const FTransform SpawnTransform(SpawnRotation, SpawnLocation);
+
+		AWarriorMovingRectangleDamageArea* DamageArea =
+			World->SpawnActorDeferred<AWarriorMovingRectangleDamageArea>(
+				AWarriorMovingRectangleDamageArea::StaticClass(),
+				SpawnTransform,
+				OwningPawn,
+				OwningPawn,
+				ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+
+		if (!DamageArea)
+		{
+			continue;
+		}
+
+		DamageArea->InitializeDamageArea(OwningPawn, DamageSpecHandle, DamageAreaConfig);
+		UGameplayStatics::FinishSpawningActor(DamageArea, SpawnTransform);
+		++SpawnedCollisionCount;
+	}
+
+	return SpawnedCollisionCount;
+}
+
 int32 UWarriorEnemyGameplayAbility::ApplyEnemyDamageEffectSpecHandleToPawnsInRadiusInternal(
 	const FGameplayEffectSpecHandle& InEffectSpecHandle,
 	FVector Origin,

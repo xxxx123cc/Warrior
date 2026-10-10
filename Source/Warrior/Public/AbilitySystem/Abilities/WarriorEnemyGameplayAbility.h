@@ -96,6 +96,9 @@ public:
 		const FWarriorMovingRectangleDamageAreaConfig& DamageAreaConfig,
 		float SpawnForwardOffset = 0.f,
 		float SpawnHeightOffset = 0.f);
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|Ability|Attack", DisplayName="Fire Triple Sword Qi Damage")
+	int32 FireTripleSwordQiDamage(const FWarriorTripleSwordQiData& SwordQiData);
 	
 	
 	

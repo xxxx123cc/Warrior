@@ -13,7 +13,7 @@
 
 namespace
 {
-	const FName TargetActorKeyName(TEXT("TargetActor"));
+	const FName WarriorTargetActorKeyName(TEXT("TargetActor"));
 	constexpr float TargetActorMemoryDuration = 5.f;
 }
 
@@ -118,9 +118,9 @@ void AWarriorAIController::OnPerceptionUpdated(const TArray<AActor*>& UpdatedAct
 			// Refresh the current target and cancel any pending sight-memory clear.
 			GetWorldTimerManager().ClearTimer(ClearTargetActorTimerHandle);
 			RememberedTargetActor.Reset();
-			BlackboardComponent->SetValueAsObject(TargetActorKeyName, Actor);
+			BlackboardComponent->SetValueAsObject(WarriorTargetActorKeyName, Actor);
 		}
-		else if (BlackboardComponent->GetValueAsObject(TargetActorKeyName) == Actor)
+		else if (BlackboardComponent->GetValueAsObject(WarriorTargetActorKeyName) == Actor)
 		{
 			// Keep the last seen target briefly before clearing it from the blackboard.
 			StartTargetActorMemory(Actor);
@@ -157,9 +157,9 @@ void AWarriorAIController::ClearRememberedTargetActor()
 	UBlackboardComponent* BlackboardComponent = GetBlackboardComponent();
 	AActor* ActorToForget = RememberedTargetActor.Get();
 
-	if (BlackboardComponent && (!ActorToForget || BlackboardComponent->GetValueAsObject(TargetActorKeyName) == ActorToForget))
+	if (BlackboardComponent && (!ActorToForget || BlackboardComponent->GetValueAsObject(WarriorTargetActorKeyName) == ActorToForget))
 	{
-		BlackboardComponent->ClearValue(TargetActorKeyName);
+		BlackboardComponent->ClearValue(WarriorTargetActorKeyName);
 	}
 
 	RememberedTargetActor.Reset();

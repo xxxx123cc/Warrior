@@ -69,7 +69,7 @@ protected:
 	float BossPoiseDamageOnWeaponClash = 10.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Warroir|BossPoise", meta=(ClampMin="0.0"))
-	float BossPoiseBreakStunDuration = 3.f;
+	float BossPoiseBreakStunDuration = 4.f;
 
 private:
 	bool TryHandleAbilityInput(const FGameplayTag& InputTag);

@@ -9,6 +9,7 @@
 
 class UWarriorHeroLinkedAnimLayer;
 class UWarriorHeroGameplayAbility;
+class UGameplayEffect;
 class UInputMappingContext;
 class UTexture2D;
 /**
@@ -82,6 +83,48 @@ struct FWarriorHeavyAttackMultiSlashData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Debug")
 	bool bDrawDebug = false;
+};
+
+USTRUCT(BlueprintType)
+struct FWarriorTripleSwordQiData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
+	TSubclassOf<UGameplayEffect> DamageEffectClass = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
+	FScalableFloat DamageScalableFloat;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
+	FWarriorAttackImpactData AttackImpactData;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Collision", meta=(ClampMin="1.0"))
+	FVector CollisionBoxSize = FVector(120.f, 100.f, 160.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Collision", meta=(ClampMin="0.0"))
+	float SpawnForwardOffset = 80.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Collision")
+	float DamageBoxGroundOffset = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Collision", meta=(ClampMin="0.0"))
+	float SideSpawnOffset = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Collision", meta=(ClampMin="0.0", ClampMax="89.0"))
+	float SideAngleDegrees = 15.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Movement", meta=(ClampMin="0.0"))
+	float TravelDistance = 900.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Movement", meta=(ClampMin="0.0"))
+	float MoveSpeed = 1600.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
+	bool bDamageTargetsOnlyOnce = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Collision")
+	bool bDrawDebugCollision = false;
 };
 
 USTRUCT(Blueprintable)
