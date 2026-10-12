@@ -2,6 +2,7 @@
 
 
 #include "WarriorFunctionLibrary.h"
+#include "Abilities/GameplayAbility.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/WarriorAttributeSet.h"
@@ -25,6 +26,8 @@
 #include "Components/UI/HeroUIComponent.h"
 #include "Components/UI/EnemyUIComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/PrimitiveComponent.h"
+#include "EngineUtils.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Characters/WarriorEnemyCharacter.h"
@@ -33,6 +36,117 @@
 
 namespace
 {
+	TMap<const AActor*, int32> PendingSpecialHitReactSerialByTarget;
+
+	int32 MarkPendingSpecialHitReactEvent(const AActor* TargetActor)
+	{
+		if (!TargetActor)
+		{
+			return INDEX_NONE;
+		}
+
+		int32& PendingSerial = PendingSpecialHitReactSerialByTarget.FindOrAdd(TargetActor);
+		++PendingSerial;
+		return PendingSerial;
+	}
+
+	bool IsPendingSpecialHitReactEvent(const AActor* TargetActor, int32 ExpectedSerial)
+	{
+		const int32* PendingSerial = PendingSpecialHitReactSerialByTarget.Find(TargetActor);
+		return PendingSerial && *PendingSerial == ExpectedSerial;
+	}
+
+	bool HasPendingSpecialHitReactEvent(const AActor* TargetActor)
+	{
+		return TargetActor && PendingSpecialHitReactSerialByTarget.Contains(TargetActor);
+	}
+
+	void ClearPendingSpecialHitReactEvent(const AActor* TargetActor, int32 ExpectedSerial)
+	{
+		if (IsPendingSpecialHitReactEvent(TargetActor, ExpectedSerial))
+		{
+			PendingSpecialHitReactSerialByTarget.Remove(TargetActor);
+		}
+	}
+
+	bool IsHitReactAbilitySpec(const FGameplayAbilitySpec& AbilitySpec)
+	{
+		if (!AbilitySpec.Ability)
+		{
+			return false;
+		}
+
+		const FGameplayTagContainer& AbilityTags = AbilitySpec.Ability->GetAssetTags();
+		return AbilityTags.HasTag(WarriorGameplayTags::Shared_Ability_HitReact) ||
+			AbilitySpec.GetDynamicSpecSourceTags().HasTag(WarriorGameplayTags::Shared_Ability_HitReact);
+	}
+
+	bool HasActiveHitReactAbility(const UAbilitySystemComponent* TargetASC)
+	{
+		if (!TargetASC)
+		{
+			return false;
+		}
+
+		for (const FGameplayAbilitySpec& AbilitySpec : TargetASC->GetActivatableAbilities())
+		{
+			if (AbilitySpec.IsActive() && IsHitReactAbilitySpec(AbilitySpec))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	void SendHitReactGameplayEvent(AActor* TargetActor, FGameplayTag EventTag, const FGameplayEventData& EventData)
+	{
+		if (!TargetActor)
+		{
+			return;
+		}
+
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+			TargetActor,
+			EventTag,
+			EventData);
+	}
+
+	void SendHitReactGameplayEventNextTick(AActor* TargetActor, FGameplayTag EventTag, const FGameplayEventData& EventData)
+	{
+		if (!TargetActor)
+		{
+			return;
+		}
+
+		UWorld* World = TargetActor->GetWorld();
+		if (!World)
+		{
+			SendHitReactGameplayEvent(TargetActor, EventTag, EventData);
+			return;
+		}
+
+		const TWeakObjectPtr<AActor> WeakTargetActor = TargetActor;
+		const AActor* TargetActorKey = TargetActor;
+		const int32 PendingSerial = MarkPendingSpecialHitReactEvent(TargetActorKey);
+		World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda(
+			[WeakTargetActor, TargetActorKey, PendingSerial, EventTag, EventData]()
+			{
+				if (!IsPendingSpecialHitReactEvent(TargetActorKey, PendingSerial))
+				{
+					return;
+				}
+
+				ClearPendingSpecialHitReactEvent(TargetActorKey, PendingSerial);
+				if (!WeakTargetActor.IsValid())
+				{
+					return;
+				}
+
+				SendHitReactGameplayEvent(WeakTargetActor.Get(), EventTag, EventData);
+			}));
+	}
+
 	void BroadcastBlockValueChanged(AActor* InActor, float CurrentBlockValue, float MaxBlockValue)
 	{
 		if (!InActor)
@@ -91,6 +205,57 @@ namespace
 		}
 
 		return InSpecHandle.Data->GetSetByCallerMagnitude(Tag, false, DefaultValue);
+	}
+
+	bool IsValidUnderAttackDashTarget(AActor* DashActor, AActor* CandidateActor)
+	{
+		if (!DashActor || !CandidateActor || DashActor == CandidateActor)
+		{
+			return false;
+		}
+
+		APawn* DashPawn = Cast<APawn>(DashActor);
+		APawn* CandidatePawn = Cast<APawn>(CandidateActor);
+		if (!DashPawn || !CandidatePawn)
+		{
+			return false;
+		}
+
+		return UWarriorFunctionLibrary::IsTargetPawnHostile(DashPawn, CandidatePawn) &&
+			!UWarriorFunctionLibrary::NativeDoesActorHaveTag(CandidateActor, WarriorGameplayTags::Shared_Status_Death) &&
+			UWarriorFunctionLibrary::NativeDoesActorHaveTag(CandidateActor, WarriorGameplayTags::Enemy_Status_UnderAttack);
+	}
+
+	AActor* FindNearestUnderAttackDashTarget(AActor* DashActor)
+	{
+		if (!DashActor || !DashActor->GetWorld())
+		{
+			return nullptr;
+		}
+
+		const FVector DashActorLocation = DashActor->GetActorLocation();
+		AActor* BestTargetActor = nullptr;
+		float BestDistanceSquared = TNumericLimits<float>::Max();
+
+		for (TActorIterator<AWarriorEnemyCharacter> It(DashActor->GetWorld()); It; ++It)
+		{
+			AWarriorEnemyCharacter* EnemyCharacter = *It;
+			if (!IsValid(EnemyCharacter) || !IsValidUnderAttackDashTarget(DashActor, EnemyCharacter))
+			{
+				continue;
+			}
+
+			const float DistanceSquared = FVector::DistSquared2D(
+				DashActorLocation,
+				EnemyCharacter->GetActorLocation());
+			if (DistanceSquared < BestDistanceSquared)
+			{
+				BestTargetActor = EnemyCharacter;
+				BestDistanceSquared = DistanceSquared;
+			}
+		}
+
+		return BestTargetActor;
 	}
 }
 /**
@@ -275,6 +440,103 @@ AActor* UWarriorFunctionLibrary::FindNearestHostileActorInFront(
 	return UGameplayStatics::FindNearestActor(QueryPawn->GetActorLocation(), HostileActors, ClosestDistance);
 }
 
+bool UWarriorFunctionLibrary::DashThroughTarget(
+	AActor* DashActor,
+	AActor* TargetActor,
+	float PassThroughDistance,
+	bool bSweep,
+	bool bFaceDashDirection,
+	FVector& OutDestination,
+	FHitResult& OutSweepHit)
+{
+	OutDestination = FVector::ZeroVector;
+	OutSweepHit = FHitResult();
+
+	if (!DashActor)
+	{
+		return false;
+	}
+
+	AActor* ResolvedTargetActor = IsValidUnderAttackDashTarget(DashActor, TargetActor)
+		? TargetActor
+		: FindNearestUnderAttackDashTarget(DashActor);
+
+	const FVector StartLocation = DashActor->GetActorLocation();
+	FVector DashDirection = FVector::ZeroVector;
+
+	if (ResolvedTargetActor)
+	{
+		DashDirection = ResolvedTargetActor->GetActorLocation() - StartLocation;
+		DashDirection.Z = 0.f;
+	}
+	else
+	{
+		DashDirection = DashActor->GetActorForwardVector();
+		DashDirection.Z = 0.f;
+	}
+
+	if (!DashDirection.Normalize())
+	{
+		return false;
+	}
+
+	OutDestination = ResolvedTargetActor
+		? ResolvedTargetActor->GetActorLocation() + DashDirection * FMath::Max(0.f, PassThroughDistance)
+		: StartLocation + DashDirection * FMath::Max(0.f, PassThroughDistance);
+	OutDestination.Z = StartLocation.Z;
+
+	if (bFaceDashDirection)
+	{
+		FRotator DashRotation = DashDirection.ToOrientationRotator();
+		DashRotation.Pitch = 0.f;
+		DashRotation.Roll = 0.f;
+		DashActor->SetActorRotation(DashRotation);
+	}
+
+	if (ACharacter* DashCharacter = Cast<ACharacter>(DashActor))
+	{
+		if (UCharacterMovementComponent* MovementComponent = DashCharacter->GetCharacterMovement())
+		{
+			MovementComponent->StopMovementImmediately();
+		}
+	}
+
+	UPrimitiveComponent* DashRootPrimitive = Cast<UPrimitiveComponent>(DashActor->GetRootComponent());
+	UPrimitiveComponent* TargetRootPrimitive = ResolvedTargetActor
+		? Cast<UPrimitiveComponent>(ResolvedTargetActor->GetRootComponent())
+		: nullptr;
+	if (bSweep && DashRootPrimitive && ResolvedTargetActor)
+	{
+		DashRootPrimitive->IgnoreActorWhenMoving(ResolvedTargetActor, true);
+	}
+	if (bSweep && TargetRootPrimitive)
+	{
+		TargetRootPrimitive->IgnoreActorWhenMoving(DashActor, true);
+	}
+
+	const bool bMoved = DashActor->SetActorLocation(
+		OutDestination,
+		bSweep,
+		&OutSweepHit,
+		ETeleportType::TeleportPhysics);
+
+	if (bSweep && DashRootPrimitive && ResolvedTargetActor)
+	{
+		DashRootPrimitive->IgnoreActorWhenMoving(ResolvedTargetActor, false);
+	}
+	if (bSweep && TargetRootPrimitive)
+	{
+		TargetRootPrimitive->IgnoreActorWhenMoving(DashActor, false);
+	}
+
+	if (bSweep && OutSweepHit.bBlockingHit)
+	{
+		OutDestination = DashActor->GetActorLocation();
+	}
+
+	return bMoved;
+}
+
 FGameplayTag UWarriorFunctionLibrary::ComputeAttackDirectionTag(AActor* AttackerPawn, AActor* TargetPawn,
 	float& OutAngleDifference)
 {
@@ -377,6 +639,54 @@ bool UWarriorFunctionLibrary::IsActorInDodgeIFrame(AActor* InActor)
 {
 	return InActor &&
 		NativeDoesActorHaveTag(InActor, WarriorGameplayTags::Player_Status_DodgeIFrame);
+}
+
+void UWarriorFunctionLibrary::SendHitReactEventToActor(
+	AActor* TargetActor,
+	FGameplayTag EventTag,
+	FGameplayEventData EventData)
+{
+	if (!TargetActor)
+	{
+		return;
+	}
+
+	const FGameplayTag ResolvedEventTag = EventTag.IsValid()
+		? EventTag
+		: WarriorGameplayTags::Shared_Event_HitReact;
+
+	EventData.EventTag = ResolvedEventTag;
+	if (!EventData.Target)
+	{
+		EventData.Target = TargetActor;
+	}
+
+	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
+	const bool bIsSpecialHitReact = IsSpecialHitReactEvent(EventData);
+	if (bIsSpecialHitReact)
+	{
+		if (HasPendingSpecialHitReactEvent(TargetActor))
+		{
+			return;
+		}
+
+		const bool bCancelledActiveHitReact = CancelActiveHitReactAbilities(TargetActor);
+		if (bCancelledActiveHitReact)
+		{
+			SendHitReactGameplayEventNextTick(TargetActor, ResolvedEventTag, EventData);
+			return;
+		}
+	}
+	else if (HasActiveHitReactAbility(TargetASC))
+	{
+		return;
+	}
+	else if (HasPendingSpecialHitReactEvent(TargetActor))
+	{
+		return;
+	}
+
+	SendHitReactGameplayEvent(TargetActor, ResolvedEventTag, EventData);
 }
 
 bool UWarriorFunctionLibrary::HandleSuccessfulBlock(
@@ -592,16 +902,19 @@ bool UWarriorFunctionLibrary::ApplyGameplayEffectHandleToTarget(AActor* Instigat
 	const bool bWasApplied = ActivateGameplayEffectHandle.WasSuccessfullyApplied();
 	if (bWasApplied && BaseDamage > 0.f)
 	{
+		const FWarriorAttackImpactData AttackImpactData =
+			GetAttackImpactDataFromEffectSpecHandle(InSpecHandle, FWarriorAttackImpactData());
+
 		ApplyBossPoiseDamage(
 			TargetActor,
 			Instigator,
-			TargetASC->GetBossPoiseDamageOnHit(),
+			ResolveBossPoiseDamage(AttackImpactData, TargetASC),
 			TargetASC->GetBossPoiseBreakStunDuration());
 
 		ApplyAttackImpactToTarget(
 			TargetActor,
 			Instigator,
-			GetAttackImpactDataFromEffectSpecHandle(InSpecHandle, FWarriorAttackImpactData()));
+			AttackImpactData);
 	}
 
 	return bWasApplied;
@@ -629,6 +942,9 @@ void UWarriorFunctionLibrary::SetAttackImpactDataToEffectSpecHandle(
 	InOutSpecHandle.Data->SetSetByCallerMagnitude(
 		WarriorGameplayTags::Shared_SetByCaller_Attack_BlockCost,
 		FMath::Max(0.f, AttackImpactData.BlockCost));
+	InOutSpecHandle.Data->SetSetByCallerMagnitude(
+		WarriorGameplayTags::Shared_SetByCaller_Attack_BossPoiseDamage,
+		FMath::Max(-1.f, AttackImpactData.BossPoiseDamage));
 	InOutSpecHandle.Data->SetSetByCallerMagnitude(
 		WarriorGameplayTags::Shared_SetByCaller_Attack_HorizontalLaunchStrength,
 		FMath::Max(0.f, AttackImpactData.HorizontalLaunchStrength));
@@ -668,6 +984,11 @@ FWarriorAttackImpactData UWarriorFunctionLibrary::GetAttackImpactDataFromEffectS
 			InSpecHandle,
 			WarriorGameplayTags::Shared_SetByCaller_Attack_BlockCost,
 			AttackImpactData.BlockCost));
+	AttackImpactData.BossPoiseDamage =
+		FMath::Max(-1.f, GetAttackImpactSetByCallerMagnitude(
+			InSpecHandle,
+			WarriorGameplayTags::Shared_SetByCaller_Attack_BossPoiseDamage,
+			AttackImpactData.BossPoiseDamage));
 	AttackImpactData.HorizontalLaunchStrength =
 		FMath::Max(0.f, GetAttackImpactSetByCallerMagnitude(
 			InSpecHandle,
@@ -690,6 +1011,18 @@ FWarriorAttackImpactData UWarriorFunctionLibrary::GetAttackImpactDataFromEffectS
 			AttackImpactData.MeshTiltDuration));
 
 	return AttackImpactData;
+}
+
+float UWarriorFunctionLibrary::ResolveBossPoiseDamage(
+	const FWarriorAttackImpactData& AttackImpactData,
+	const UWarriorAbilitySystemComponent* TargetASC)
+{
+	if (AttackImpactData.BossPoiseDamage >= 0.f)
+	{
+		return AttackImpactData.BossPoiseDamage;
+	}
+
+	return TargetASC ? TargetASC->GetBossPoiseDamageOnHit() : 0.f;
 }
 
 bool UWarriorFunctionLibrary::ApplyAttackImpactToTarget(
@@ -797,6 +1130,45 @@ void UWarriorFunctionLibrary::AddAttackImpactDataToGameplayEventData(
 	{
 		InOutEventData.TargetTags.AddTag(WarriorGameplayTags::Shared_Status_HitReact_Tilt);
 	}
+}
+
+bool UWarriorFunctionLibrary::IsSpecialHitReactEvent(const FGameplayEventData& EventData)
+{
+	const FGameplayTag LargeHitReactTag =
+		FGameplayTag::RequestGameplayTag(FName(TEXT("Shared.Ability.HitReact.Large")), false);
+
+	return EventData.TargetTags.HasTagExact(WarriorGameplayTags::Shared_Status_HitReact_Heavy) ||
+		EventData.TargetTags.HasTagExact(WarriorGameplayTags::Shared_Status_HitReact_Launch) ||
+		EventData.TargetTags.HasTagExact(WarriorGameplayTags::Shared_Status_HitReact_Knockback) ||
+		EventData.TargetTags.HasTagExact(WarriorGameplayTags::Shared_Status_HitReact_Tilt) ||
+		(LargeHitReactTag.IsValid() && EventData.TargetTags.HasTag(LargeHitReactTag));
+}
+
+bool UWarriorFunctionLibrary::CancelActiveHitReactAbilities(AActor* TargetActor)
+{
+	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
+	if (!TargetASC)
+	{
+		return false;
+	}
+
+	TArray<FGameplayAbilitySpecHandle> HitReactAbilityHandles;
+	for (const FGameplayAbilitySpec& AbilitySpec : TargetASC->GetActivatableAbilities())
+	{
+		if (!AbilitySpec.IsActive() || !IsHitReactAbilitySpec(AbilitySpec))
+		{
+			continue;
+		}
+
+		HitReactAbilityHandles.Add(AbilitySpec.Handle);
+	}
+
+	for (const FGameplayAbilitySpecHandle& AbilityHandle : HitReactAbilityHandles)
+	{
+		TargetASC->CancelAbilityHandle(AbilityHandle);
+	}
+
+	return !HitReactAbilityHandles.IsEmpty();
 }
 
 float UWarriorFunctionLibrary::GetScalableFloatValueAtLevel(const FScalableFloat& InScalableFloat, float InLevel)

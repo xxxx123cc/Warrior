@@ -101,6 +101,7 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Energy_EmpoweredHeavyReady,"Player.Status.Energy.EmpoweredHeavyReady");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Energy_EmpoweredHeavyActive,"Player.Status.Energy.EmpoweredHeavyActive");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Energy_SecondUltimateUnlocked,"Player.Status.Energy.SecondUltimateUnlocked");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Energy_EnhancedUltimateLinkWindow,"Player.Status.Energy.EnhancedUltimateLinkWindow");
 
 	//自主设置
 	UE_DEFINE_GAMEPLAY_TAG(Player_SetByCaller_AttackType_Light,"Player.SetByCaller.AttackType.Light");
@@ -154,6 +155,7 @@ namespace WarriorGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_Attack_CanBeBlocked,"Shared.SetByCaller.Attack.CanBeBlocked");
 	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_Attack_CanBeDodged,"Shared.SetByCaller.Attack.CanBeDodged");
 	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_Attack_BlockCost,"Shared.SetByCaller.Attack.BlockCost");
+	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_Attack_BossPoiseDamage,"Shared.SetByCaller.Attack.BossPoiseDamage");
 	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_Attack_HorizontalLaunchStrength,"Shared.SetByCaller.Attack.HorizontalLaunchStrength");
 	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_Attack_VerticalLaunchStrength,"Shared.SetByCaller.Attack.VerticalLaunchStrength");
 	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_Attack_MeshTiltAngle,"Shared.SetByCaller.Attack.MeshTiltAngle");

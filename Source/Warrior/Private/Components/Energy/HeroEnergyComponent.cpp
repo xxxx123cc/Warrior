@@ -62,7 +62,7 @@ void UHeroEnergyComponent::AddEnergyFromDamage(float DamageAmount)
 
 void UHeroEnergyComponent::AddEnergy(float EnergyAmount)
 {
-	if (EnergyAmount <= 0.f || CanActivateSecondUltimate())
+	if (EnergyAmount <= 0.f)
 	{
 		return;
 	}
@@ -91,6 +91,7 @@ void UHeroEnergyComponent::SetEnergy(float NewEnergy)
 void UHeroEnergyComponent::ResetEnergyState()
 {
 	StopEmpoweredHeavy();
+	CloseEnhancedUltimateLinkWindow();
 	EnergyConvertedTowardNextSkillPoint = 0.f;
 	SetSkillPoints(0);
 	SetPhase(EHeroEnergyPhase::PhaseOne);
@@ -117,11 +118,21 @@ bool UHeroEnergyComponent::TryConsumePhaseOneUltimateEnergy()
 	return true;
 }
 
+bool UHeroEnergyComponent::CanActivateNormalUltimate() const
+{
+	return CanActivatePhaseOneUltimate();
+}
+
+bool UHeroEnergyComponent::TryConsumeNormalUltimateEnergy()
+{
+	return TryConsumePhaseOneUltimateEnergy();
+}
+
 bool UHeroEnergyComponent::CanStartEmpoweredHeavy() const
 {
 	return CurrentPhase == EHeroEnergyPhase::PhaseTwo &&
 		GetEnergyPercent() >= 1.f &&
-		!CanActivateSecondUltimate();
+		!bIsEnhancedUltimateLinkWindowActive;
 }
 
 bool UHeroEnergyComponent::TryStartEmpoweredHeavy()
@@ -173,7 +184,12 @@ float UHeroEnergyComponent::ConsumeEnergyForEmpoweredHeavy(float EnergyToConsume
 	SetEnergy(CurrentEnergy - ConsumedEnergy);
 	AddConvertedEnergyTowardSkillPoints(ConsumedEnergy);
 
-	if (CurrentEnergy <= 0.f || CanActivateSecondUltimate())
+	if (CurrentEnergy <= 0.f)
+	{
+		OpenEnhancedUltimateLinkWindow();
+		StopEmpoweredHeavy();
+	}
+	else if (CanActivateSecondUltimate())
 	{
 		StopEmpoweredHeavy();
 	}
@@ -183,30 +199,28 @@ float UHeroEnergyComponent::ConsumeEnergyForEmpoweredHeavy(float EnergyToConsume
 
 bool UHeroEnergyComponent::CanActivateSecondUltimate() const
 {
-	return CurrentPhase == EHeroEnergyPhase::PhaseTwo &&
-		CurrentSkillPoints >= RequiredSkillPointsForSecondUltimate;
+	return CanActivateEnhancedUltimate();
 }
 
 bool UHeroEnergyComponent::TryConsumeSecondUltimate()
 {
-	if (!CanActivateSecondUltimate())
+	return TryConsumeEnhancedUltimate();
+}
+
+bool UHeroEnergyComponent::CanActivateEnhancedUltimate() const
+{
+	return CurrentPhase == EHeroEnergyPhase::PhaseTwo && bIsEnhancedUltimateLinkWindowActive;
+}
+
+bool UHeroEnergyComponent::TryConsumeEnhancedUltimate()
+{
+	if (!CanActivateEnhancedUltimate())
 	{
 		return false;
 	}
 
-	StopEmpoweredHeavy();
-
-	if (bResetToPhaseOneAfterSecondUltimate)
-	{
-		ResetEnergyState();
-	}
-	else
-	{
-		SetSkillPoints(0);
-		EnergyConvertedTowardNextSkillPoint = 0.f;
-		SetEnergy(0.f);
-	}
-
+	CloseEnhancedUltimateLinkWindow();
+	ResetEnergyState();
 	return true;
 }
 
@@ -274,12 +288,67 @@ void UHeroEnergyComponent::AddConvertedEnergyTowardSkillPoints(float ConvertedEn
 	}
 }
 
+void UHeroEnergyComponent::OpenEnhancedUltimateLinkWindow()
+{
+	if (CurrentPhase != EHeroEnergyPhase::PhaseTwo)
+	{
+		return;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(EnhancedUltimateLinkWindowTimerHandle);
+	}
+
+	if (!bIsEnhancedUltimateLinkWindowActive)
+	{
+		bIsEnhancedUltimateLinkWindowActive = true;
+	}
+
+	if (EnhancedUltimateLinkWindowDuration <= KINDA_SMALL_NUMBER)
+	{
+		CloseEnhancedUltimateLinkWindow();
+		return;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(
+			EnhancedUltimateLinkWindowTimerHandle,
+			this,
+			&ThisClass::CloseEnhancedUltimateLinkWindow,
+			EnhancedUltimateLinkWindowDuration,
+			false);
+	}
+
+	BroadcastReadinessChanges();
+	UpdateStatusTags();
+}
+
+void UHeroEnergyComponent::CloseEnhancedUltimateLinkWindow()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(EnhancedUltimateLinkWindowTimerHandle);
+	}
+
+	if (!bIsEnhancedUltimateLinkWindowActive)
+	{
+		return;
+	}
+
+	bIsEnhancedUltimateLinkWindowActive = false;
+	BroadcastReadinessChanges();
+	UpdateStatusTags();
+}
+
 void UHeroEnergyComponent::BroadcastAllState()
 {
 	BroadcastEnergy();
 	OnEnergyPhaseChanged.Broadcast(CurrentPhase);
 	OnSkillPointsChanged.Broadcast(CurrentSkillPoints, FMath::Max(RequiredSkillPointsForSecondUltimate, 1));
 	OnEmpoweredHeavyActiveChanged.Broadcast(bIsEmpoweredHeavyActive);
+	OnEnhancedUltimateLinkWindowChanged.Broadcast(bIsEnhancedUltimateLinkWindowActive);
 	if (UHeroUIComponent* HeroUIComponent = GetHeroUIComponentFromActor(GetOwner()))
 	{
 		HeroUIComponent->OnHeroEnergyPhaseChanged.Broadcast(CurrentPhase);
@@ -306,6 +375,7 @@ void UHeroEnergyComponent::BroadcastReadinessChanges()
 	const bool bPhaseOneUltimateReady = CanActivatePhaseOneUltimate();
 	const bool bEmpoweredHeavyReady = CanStartEmpoweredHeavy();
 	const bool bSecondUltimateUnlocked = CanActivateSecondUltimate();
+	const bool bEnhancedUltimateLinkWindowActive = bIsEnhancedUltimateLinkWindowActive;
 
 	if (bLastPhaseOneUltimateReady != bPhaseOneUltimateReady)
 	{
@@ -335,6 +405,12 @@ void UHeroEnergyComponent::BroadcastReadinessChanges()
 		{
 			HeroUIComponent->OnSecondUltimateUnlockedChanged.Broadcast(bSecondUltimateUnlocked);
 		}
+	}
+
+	if (bLastEnhancedUltimateLinkWindowActive != bEnhancedUltimateLinkWindowActive)
+	{
+		bLastEnhancedUltimateLinkWindowActive = bEnhancedUltimateLinkWindowActive;
+		OnEnhancedUltimateLinkWindowChanged.Broadcast(bEnhancedUltimateLinkWindowActive);
 	}
 }
 
@@ -374,4 +450,5 @@ void UHeroEnergyComponent::UpdateStatusTags()
 	SetLooseTag(WarriorGameplayTags::Player_Status_Energy_EmpoweredHeavyReady, CanStartEmpoweredHeavy());
 	SetLooseTag(WarriorGameplayTags::Player_Status_Energy_EmpoweredHeavyActive, bIsEmpoweredHeavyActive);
 	SetLooseTag(WarriorGameplayTags::Player_Status_Energy_SecondUltimateUnlocked, CanActivateSecondUltimate());
+	SetLooseTag(WarriorGameplayTags::Player_Status_Energy_EnhancedUltimateLinkWindow, bIsEnhancedUltimateLinkWindowActive);
 }

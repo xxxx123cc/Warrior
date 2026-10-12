@@ -118,6 +118,7 @@ int32 UHeroGameplayAbility_FireballBurst::SpawnFireballs(const FGameplayEffectSp
 
 		Projectile->SetProjectileDamageHandle(DamageSpecHandle);
 		UGameplayStatics::FinishSpawningActor(Projectile, SpawnTransform);
+		Projectile->FireForward();
 		++SpawnedCount;
 	}
 

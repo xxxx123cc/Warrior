@@ -86,6 +86,16 @@ public:
 		FVector TraceBoxHalfSize,
 		const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes,
 		bool bDrawDebugShape = false);
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|FunctionLibrary|Movement", meta=(CPP_Default_PassThroughDistance="200.0", CPP_Default_bSweep="true", CPP_Default_bFaceDashDirection="true"))
+	static bool DashThroughTarget(
+		AActor* DashActor,
+		AActor* TargetActor,
+		float PassThroughDistance,
+		bool bSweep,
+		bool bFaceDashDirection,
+		FVector& OutDestination,
+		FHitResult& OutSweepHit);
 	
 	UFUNCTION(BlueprintPure,Category="Warrior|FunctionLibrary")
 	static FGameplayTag ComputeAttackDirectionTag(AActor* AttackerPawn,AActor* TargetPawn,float& OutAngleDifference);
@@ -95,6 +105,9 @@ public:
 
 	UFUNCTION(BlueprintPure,Category="Warrior|FunctionLibrary")
 	static bool IsActorInDodgeIFrame(AActor* InActor);
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|FunctionLibrary|HitReact")
+	static void SendHitReactEventToActor(AActor* TargetActor, FGameplayTag EventTag, FGameplayEventData EventData);
 
 	UFUNCTION(BlueprintCallable, Category="Warrior|FunctionLibrary|Block")
 	static bool HandleSuccessfulBlock(AActor* InBlocker, AActor* InAttacker, float BlockCost, FGameplayEventData EventData);
@@ -114,6 +127,8 @@ public:
 	UFUNCTION(BlueprintPure, Category="Warrior|FunctionLibrary|Attack")
 	static FWarriorAttackImpactData GetAttackImpactDataFromEffectSpecHandle(const FGameplayEffectSpecHandle& InSpecHandle, FWarriorAttackImpactData DefaultAttackImpactData);
 
+	static float ResolveBossPoiseDamage(const FWarriorAttackImpactData& AttackImpactData, const UWarriorAbilitySystemComponent* TargetASC);
+
 	UFUNCTION(BlueprintCallable, Category="Warrior|FunctionLibrary|Attack")
 	static bool ApplyAttackImpactToTarget(AActor* InTarget, AActor* InInstigator, const FWarriorAttackImpactData& AttackImpactData);
 
@@ -122,6 +137,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Warrior|FunctionLibrary")
 	static float GetScalableFloatValueAtLevel(const FScalableFloat& InScalableFloat, float InLevel);
+
+	static bool IsSpecialHitReactEvent(const FGameplayEventData& EventData);
+	static bool CancelActiveHitReactAbilities(AActor* TargetActor);
 	
 
 	UFUNCTION(BlueprintCallable,Category="Warrior|FunctionLibrary",meta = (Latent,WorldContext = "WorldContextObject", LatentInfo = "LatentInfo",ExpandEnumAsExecs = "CountDownOutput|CountDownInput",Duration = "1.0",UpdateInterval = "0.1"))

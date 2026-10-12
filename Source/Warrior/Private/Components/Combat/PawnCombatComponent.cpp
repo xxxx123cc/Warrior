@@ -76,7 +76,10 @@ void UPawnCombatComponent::ToggleWeaponCollision(bool bEnableCollision, EToggleD
 	{
 		ToggleCurrentWeaponCollision(bEnableCollision,ToggleDamageType);
 	}
-	else if (ToggleDamageType==EToggleDamageType::RightHand||ToggleDamageType==EToggleDamageType::LeftHand)
+	else if (ToggleDamageType==EToggleDamageType::RightHand ||
+		ToggleDamageType==EToggleDamageType::LeftHand ||
+		ToggleDamageType==EToggleDamageType::RightFoot ||
+		ToggleDamageType==EToggleDamageType::LeftFoot)
 	{
 		ToggleCurrentHandCollision(bEnableCollision,ToggleDamageType);
 	}

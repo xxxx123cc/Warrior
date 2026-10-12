@@ -6,9 +6,11 @@
 #include "AbilitySystem/WarriorAbilitySystemComponent.h"
 #include "Characters/WarriorHeroCharacter.h"
 #include "Controllers/WarriorHeroController.h"
+#include "Components/PrimitiveComponent.h"
 #include "DrawDebugHelpers.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "TimerManager.h"
 #include "WarriorFunctionLibrary.h"
@@ -94,6 +96,24 @@ FGameplayEffectSpecHandle UWarriorHeroGameplayAbility::HeroDamageEffectHandle(TS
 	return EffectSpecHandle;
 }
 
+FGameplayEffectSpecHandle UWarriorHeroGameplayAbility::HeroDamageEffectHandleWithAttackImpactData(
+	TSubclassOf<UGameplayEffect> EffectClass,
+	float InWeaponBaseDamage,
+	FGameplayTag InCurrentAttackTypeTag,
+	int32 InUsedComboCount,
+	const FWarriorAttackImpactData& AttackImpactData)
+{
+	FGameplayEffectSpecHandle EffectSpecHandle =
+		HeroDamageEffectHandle(
+			EffectClass,
+			InWeaponBaseDamage,
+			InCurrentAttackTypeTag,
+			InUsedComboCount);
+
+	UWarriorFunctionLibrary::SetAttackImpactDataToEffectSpecHandle(EffectSpecHandle, AttackImpactData);
+	return EffectSpecHandle;
+}
+
 TArray<AActor*> UWarriorHeroGameplayAbility::PullFrontTargetsAndApplyMultiSlashDamage(
 	const FGameplayEffectSpecHandle& InEffectSpecHandle,
 	const FWarriorHeavyAttackMultiSlashData& SlashData,
@@ -128,7 +148,7 @@ TArray<AActor*> UWarriorHeroGameplayAbility::PullFrontTargetsAndApplyMultiSlashD
 			32,
 			FColor::Cyan,
 			false,
-			2.f);
+			SlashData.Duration > 0.f ? SlashData.Duration : 2.f);
 	}
 
 	TArray<TWeakObjectPtr<AActor>> WeakTargets;
@@ -159,7 +179,10 @@ TArray<AActor*> UWarriorHeroGameplayAbility::PullFrontTargetsAndApplyMultiSlashD
 			InEffectSpecHandle,
 			FWarriorAttackImpactData());
 	const int32 SlashCount = FMath::Max(1, SlashData.SlashCount);
-	const float SlashInterval = FMath::Max(0.f, SlashData.SlashInterval);
+	const float SlashInterval =
+		SlashData.Duration > KINDA_SMALL_NUMBER && SlashCount > 1
+			? SlashData.Duration / static_cast<float>(SlashCount - 1)
+			: FMath::Max(0.f, SlashData.SlashInterval);
 
 	if (SlashInterval <= KINDA_SMALL_NUMBER)
 	{
@@ -194,6 +217,185 @@ TArray<AActor*> UWarriorHeroGameplayAbility::PullFrontTargetsAndApplyMultiSlashD
 	}
 
 	return TargetActors;
+}
+
+AActor* UWarriorHeroGameplayAbility::ResolveEnhancedUltimateTarget(
+	AActor* PreferredTarget,
+	float FallbackTraceDistance,
+	FVector FallbackTraceBoxHalfSize,
+	const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes,
+	bool bDrawDebugShape) const
+{
+	if (IsValidEnhancedUltimateTarget(PreferredTarget))
+	{
+		return PreferredTarget;
+	}
+
+	if (const AWarriorHeroCharacter* HeroCharacter = GetHeroCharacterFromActorInfo())
+	{
+		if (AActor* LockedTarget = HeroCharacter->GetCurrentLockedOnTarget())
+		{
+			if (IsValidEnhancedUltimateTarget(LockedTarget))
+			{
+				return LockedTarget;
+			}
+		}
+	}
+
+	APawn* OwningPawn = Cast<APawn>(GetAvatarActorFromActorInfo());
+	if (!OwningPawn)
+	{
+		return nullptr;
+	}
+
+	TArray<TEnumAsByte<EObjectTypeQuery>> TraceObjectTypes = ObjectTypes;
+	if (TraceObjectTypes.IsEmpty())
+	{
+		TraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
+	}
+
+	return UWarriorFunctionLibrary::FindNearestHostileActorInFront(
+		OwningPawn,
+		FMath::Max(0.f, FallbackTraceDistance),
+		FVector(
+			FMath::Abs(FallbackTraceBoxHalfSize.X),
+			FMath::Abs(FallbackTraceBoxHalfSize.Y),
+			FMath::Abs(FallbackTraceBoxHalfSize.Z)),
+		TraceObjectTypes,
+		bDrawDebugShape);
+}
+
+bool UWarriorHeroGameplayAbility::DashThroughEnhancedUltimateTarget(
+	AActor* TargetActor,
+	float PassThroughDistance,
+	bool bSweep,
+	bool bFaceDashDirection,
+	FVector& OutDashStart,
+	FVector& OutDashEnd,
+	FHitResult& OutSweepHit)
+{
+	OutDashStart = FVector::ZeroVector;
+	OutDashEnd = FVector::ZeroVector;
+	OutSweepHit = FHitResult();
+
+	AActor* AvatarActor = GetAvatarActorFromActorInfo();
+	if (!AvatarActor || !IsValidEnhancedUltimateTarget(TargetActor))
+	{
+		return false;
+	}
+
+	OutDashStart = AvatarActor->GetActorLocation();
+
+	FVector DashDirection = TargetActor->GetActorLocation() - OutDashStart;
+	DashDirection.Z = 0.f;
+	if (!DashDirection.Normalize())
+	{
+		return false;
+	}
+
+	OutDashEnd = TargetActor->GetActorLocation() + DashDirection * FMath::Max(0.f, PassThroughDistance);
+	OutDashEnd.Z = OutDashStart.Z;
+
+	if (bFaceDashDirection)
+	{
+		FRotator DashRotation = DashDirection.ToOrientationRotator();
+		DashRotation.Pitch = 0.f;
+		DashRotation.Roll = 0.f;
+		AvatarActor->SetActorRotation(DashRotation);
+	}
+
+	if (ACharacter* AvatarCharacter = Cast<ACharacter>(AvatarActor))
+	{
+		if (UCharacterMovementComponent* MovementComponent = AvatarCharacter->GetCharacterMovement())
+		{
+			MovementComponent->StopMovementImmediately();
+		}
+	}
+
+	UPrimitiveComponent* AvatarRootPrimitive = Cast<UPrimitiveComponent>(AvatarActor->GetRootComponent());
+	UPrimitiveComponent* TargetRootPrimitive = Cast<UPrimitiveComponent>(TargetActor->GetRootComponent());
+	if (bSweep && AvatarRootPrimitive)
+	{
+		AvatarRootPrimitive->IgnoreActorWhenMoving(TargetActor, true);
+	}
+	if (bSweep && TargetRootPrimitive)
+	{
+		TargetRootPrimitive->IgnoreActorWhenMoving(AvatarActor, true);
+	}
+
+	const bool bMoved = AvatarActor->SetActorLocation(
+		OutDashEnd,
+		bSweep,
+		&OutSweepHit,
+		ETeleportType::TeleportPhysics);
+
+	if (bSweep && AvatarRootPrimitive)
+	{
+		AvatarRootPrimitive->IgnoreActorWhenMoving(TargetActor, false);
+	}
+	if (bSweep && TargetRootPrimitive)
+	{
+		TargetRootPrimitive->IgnoreActorWhenMoving(AvatarActor, false);
+	}
+
+	if (bSweep && OutSweepHit.bBlockingHit)
+	{
+		OutDashEnd = AvatarActor->GetActorLocation();
+	}
+
+	return bMoved;
+}
+
+AWarriorTimedCircleDamageArea* UWarriorHeroGameplayAbility::SpawnEnhancedUltimateSlashArea(
+	AActor* TargetActor,
+	TSubclassOf<AWarriorTimedCircleDamageArea> DamageAreaClass,
+	const FGameplayEffectSpecHandle& DamageSpecHandle,
+	const FWarriorTimedCircleDamageAreaConfig& AreaConfig,
+	float SpawnHeightOffset)
+{
+	APawn* OwningPawn = Cast<APawn>(GetAvatarActorFromActorInfo());
+	UWorld* World = OwningPawn ? OwningPawn->GetWorld() : nullptr;
+	if (!World ||
+		!OwningPawn ||
+		!IsValidEnhancedUltimateTarget(TargetActor) ||
+		!DamageAreaClass ||
+		!DamageSpecHandle.IsValid() ||
+		!DamageSpecHandle.Data.IsValid())
+	{
+		return nullptr;
+	}
+
+	const FVector SpawnLocation = TargetActor->GetActorLocation() + FVector::UpVector * SpawnHeightOffset;
+	const FRotator SpawnRotation(0.f, OwningPawn->GetActorRotation().Yaw, 0.f);
+	const FTransform SpawnTransform(SpawnRotation, SpawnLocation);
+
+	AWarriorTimedCircleDamageArea* DamageArea =
+		World->SpawnActorDeferred<AWarriorTimedCircleDamageArea>(
+			DamageAreaClass,
+			SpawnTransform,
+			OwningPawn,
+			OwningPawn,
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+
+	if (!DamageArea)
+	{
+		return nullptr;
+	}
+
+	DamageArea->InitializeDamageArea(OwningPawn, DamageSpecHandle, AreaConfig);
+	UGameplayStatics::FinishSpawningActor(DamageArea, SpawnTransform);
+	return DamageArea;
+}
+
+bool UWarriorHeroGameplayAbility::IsValidEnhancedUltimateTarget(AActor* CandidateTarget) const
+{
+	APawn* OwningPawn = Cast<APawn>(GetAvatarActorFromActorInfo());
+	APawn* TargetPawn = Cast<APawn>(CandidateTarget);
+	return OwningPawn &&
+		TargetPawn &&
+		OwningPawn != TargetPawn &&
+		UWarriorFunctionLibrary::IsTargetPawnHostile(OwningPawn, TargetPawn) &&
+		!UWarriorFunctionLibrary::NativeDoesActorHaveTag(TargetPawn, WarriorGameplayTags::Shared_Status_Death);
 }
 
 TArray<AActor*> UWarriorHeroGameplayAbility::FindHostileTargetsInFront(
@@ -403,7 +605,7 @@ void UWarriorHeroGameplayAbility::ApplyMultiSlashHit(
 		EventData.EventMagnitude = AttackImpactData.BlockCost;
 		UWarriorFunctionLibrary::AddAttackImpactDataToGameplayEventData(EventData, AttackImpactData);
 
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+		UWarriorFunctionLibrary::SendHitReactEventToActor(
 			TargetPawn,
 			WarriorGameplayTags::Shared_Event_HitReact,
 			EventData);

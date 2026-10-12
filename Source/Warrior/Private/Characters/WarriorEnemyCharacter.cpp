@@ -251,40 +251,47 @@ void AWarriorEnemyCharacter::InitEnemyStartUpData()
 		SetActorHiddenInGame(false);
 		return;
 	}
+
+	const FSoftObjectPath StartUpDataPath = CharacterStartUpData.ToSoftObjectPath();
+
 	int32 AbilityApplyLevel = 1;
-	if (AWarriorBaseGameMode* BaseGameMode = GetWorld()->GetAuthGameMode<AWarriorBaseGameMode>())
+	if (UWorld* World = GetWorld())
 	{
-		switch (BaseGameMode->GetGameDifficulty())
+		if (AWarriorBaseGameMode* BaseGameMode = World->GetAuthGameMode<AWarriorBaseGameMode>())
 		{
-		case WarriorDifficulty::Easy:
-			AbilityApplyLevel = 1;
-			break;
-		case WarriorDifficulty::Normal:
-			AbilityApplyLevel = 2;
-			break;
-		case WarriorDifficulty::Medium:
-			AbilityApplyLevel = 3;
-			break;	
-		case WarriorDifficulty::Hard:
-			AbilityApplyLevel = 4;
-		default:
-			break;
-				
-		};
+			switch (BaseGameMode->GetGameDifficulty())
+			{
+			case WarriorDifficulty::Easy:
+				AbilityApplyLevel = 1;
+				break;
+			case WarriorDifficulty::Normal:
+				AbilityApplyLevel = 2;
+				break;
+			case WarriorDifficulty::Medium:
+				AbilityApplyLevel = 3;
+				break;
+			case WarriorDifficulty::Hard:
+				AbilityApplyLevel = 4;
+				break;
+			default:
+				break;
+			};
+		}
 			
 			
 	}
-	UAssetManager::GetStreamableManager().RequestAsyncLoad(CharacterStartUpData.ToSoftObjectPath(), FStreamableDelegate::CreateLambda([this,AbilityApplyLevel]()
+
+	UAssetManager::GetStreamableManager().RequestAsyncLoad(StartUpDataPath, FStreamableDelegate::CreateWeakLambda(this, [this, StartUpDataPath, AbilityApplyLevel]()
 	{
-		if (UDataAsset_StartUpDataBase*LoadedData = CharacterStartUpData.Get())
+		if (WarriorAbilitySystemComponent)
 		{
-			LoadedData->GivenToAbilitySystemComponent(WarriorAbilitySystemComponent,AbilityApplyLevel);
-			SetActorHiddenInGame(false);
+			if (UDataAsset_StartUpDataBase* LoadedData = Cast<UDataAsset_StartUpDataBase>(StartUpDataPath.ResolveObject()))
+			{
+				LoadedData->GivenToAbilitySystemComponent(WarriorAbilitySystemComponent, AbilityApplyLevel);
+			}
 		}
-		else
-		{
-			SetActorHiddenInGame(false);
-		}
+
+		SetActorHiddenInGame(false);
 	}));
 
 }

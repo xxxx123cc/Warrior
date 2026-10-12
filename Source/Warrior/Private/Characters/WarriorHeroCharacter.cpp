@@ -25,6 +25,7 @@
 #include "Components/Energy/HeroEnergyComponent.h"
 #include "Components/Inventory/WarriorInventoryComponent.h"
 #include "Components/UI/HeroUIComponent.h"
+#include "Components/BoxComponent.h"
 #include "WarriorFunctionLibrary.h"
 #include "GameModes/WarriorBaseGameMode.h"
 
@@ -67,6 +68,14 @@ AWarriorHeroCharacter::AWarriorHeroCharacter()
 	HeroCombatComponent = CreateDefaultSubobject<UHeroCombatComponent>(TEXT("HeroCombatComponent"));
 	
 	HeroUIComponent = CreateDefaultSubobject<UHeroUIComponent>(TEXT("HeroUIComponent"));
+
+	LeftFootBoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("LeftFootBoxComponent"));
+	LeftFootBoxComponent->SetupAttachment(GetMesh(), LeftFootCollisionBoxBoneName);
+	ConfigureBodyCollisionBox(LeftFootBoxComponent);
+
+	RightFootBoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("RightFootBoxComponent"));
+	RightFootBoxComponent->SetupAttachment(GetMesh(), RightFootCollisionBoxBoneName);
+	ConfigureBodyCollisionBox(RightFootBoxComponent);
 
 	WarriorInventoryComponent = CreateDefaultSubobject<UWarriorInventoryComponent>(TEXT("WarriorInventoryComponent"));
 
@@ -137,6 +146,16 @@ float AWarriorHeroCharacter::GetActiveTurnStartAngle() const
 	return HasActiveTurnStartRequest() ? ActiveTurnStartAngle : 0.f;
 }
 
+void AWarriorHeroCharacter::SetCurrentLockedOnTarget(AActor* InLockedOnTarget)
+{
+	CurrentLockedOnTarget = InLockedOnTarget;
+}
+
+AActor* AWarriorHeroCharacter::GetCurrentLockedOnTarget() const
+{
+	return IsValid(CurrentLockedOnTarget) ? CurrentLockedOnTarget : nullptr;
+}
+
 void AWarriorHeroCharacter::ApplyDesiredMovementSpeed()
 {
 	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
@@ -196,6 +215,8 @@ void AWarriorHeroCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	AttachFootCollisionBoxesToMesh();
+
 	bIsRunning = bStartRunning;
 	ApplyDesiredMovementSpeed();
 
@@ -204,6 +225,89 @@ void AWarriorHeroCharacter::BeginPlay()
 		CameraBoom->bDoCollisionTest = true;
 		CameraBoom->ProbeChannel = ECC_Camera;
 		CameraBoom->ProbeSize = CameraCollisionProbeSize;
+	}
+}
+
+#if WITH_EDITOR
+void AWarriorHeroCharacter::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (PropertyChangedEvent.GetMemberPropertyName() == GET_MEMBER_NAME_CHECKED(ThisClass, LeftFootCollisionBoxBoneName) ||
+		PropertyChangedEvent.GetMemberPropertyName() == GET_MEMBER_NAME_CHECKED(ThisClass, RightFootCollisionBoxBoneName))
+	{
+		AttachFootCollisionBoxesToMesh();
+	}
+}
+#endif
+
+void AWarriorHeroCharacter::AttachFootCollisionBoxesToMesh()
+{
+	if (LeftFootBoxComponent)
+	{
+		LeftFootBoxComponent->AttachToComponent(
+			GetMesh(),
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			LeftFootCollisionBoxBoneName);
+	}
+
+	if (RightFootBoxComponent)
+	{
+		RightFootBoxComponent->AttachToComponent(
+			GetMesh(),
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			RightFootCollisionBoxBoneName);
+	}
+}
+
+void AWarriorHeroCharacter::ConfigureBodyCollisionBox(UBoxComponent* CollisionBox)
+{
+	if (!CollisionBox)
+	{
+		return;
+	}
+
+	CollisionBox->SetBoxExtent(FVector(18.f, 18.f, 14.f));
+	CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CollisionBox->SetCollisionObjectType(ECC_WorldDynamic);
+	CollisionBox->SetCollisionResponseToAllChannels(ECR_Ignore);
+	CollisionBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	CollisionBox->SetGenerateOverlapEvents(true);
+	CollisionBox->CanCharacterStepUpOn = ECB_No;
+	CollisionBox->SetCanEverAffectNavigation(false);
+	CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &ThisClass::OnBodyCollisionBoxBeginOverlap);
+	CollisionBox->OnComponentEndOverlap.AddDynamic(this, &ThisClass::OnBodyCollisionBoxEndOverlap);
+}
+
+void AWarriorHeroCharacter::OnBodyCollisionBoxBeginOverlap(
+	UPrimitiveComponent* OverlappedComponent,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex,
+	bool bFromSweep,
+	const FHitResult& SweepResult)
+{
+	APawn* TargetPawn = Cast<APawn>(OtherActor);
+	if (!TargetPawn || TargetPawn == this || !HeroCombatComponent)
+	{
+		return;
+	}
+
+	if (UWarriorFunctionLibrary::IsTargetPawnHostile(this, TargetPawn))
+	{
+		HeroCombatComponent->OnHitTargetActor(TargetPawn);
+	}
+}
+
+void AWarriorHeroCharacter::OnBodyCollisionBoxEndOverlap(
+	UPrimitiveComponent* OverlappedComponent,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex)
+{
+	if (HeroCombatComponent && OtherActor)
+	{
+		HeroCombatComponent->OnWeaponEndOverlapTarget(OtherActor);
 	}
 }
 

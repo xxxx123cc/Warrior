@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/PawnExtensionComponentBase.h"
+#include "TimerManager.h"
 #include "WarriorTypes/WarriorEnergyTypes.h"
 #include "HeroEnergyComponent.generated.h"
 
@@ -16,8 +17,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHeroEnergyBoolStateChangedDelegat
 /**
  * Drives the hero's staged energy loop:
  * Phase 1 damage fills energy, first ultimate spends it and moves to phase 2.
- * Phase 2 damage fills energy, empowered heavy drains it into skill points.
- * Three skill points unlock the second ultimate.
+ * Phase 2 damage fills energy, empowered heavy drains it; draining to zero opens the enhanced ultimate link window.
+ * The enhanced ultimate can only be consumed while that link window is active.
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class WARRIOR_API UHeroEnergyComponent : public UPawnExtensionComponentBase
@@ -49,6 +50,12 @@ public:
 	bool TryConsumePhaseOneUltimateEnergy();
 
 	UFUNCTION(BlueprintPure, Category="Warrior|HeroEnergy")
+	bool CanActivateNormalUltimate() const;
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|HeroEnergy")
+	bool TryConsumeNormalUltimateEnergy();
+
+	UFUNCTION(BlueprintPure, Category="Warrior|HeroEnergy")
 	bool CanStartEmpoweredHeavy() const;
 
 	UFUNCTION(BlueprintCallable, Category="Warrior|HeroEnergy")
@@ -65,6 +72,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Warrior|HeroEnergy")
 	bool TryConsumeSecondUltimate();
+
+	UFUNCTION(BlueprintPure, Category="Warrior|HeroEnergy")
+	bool CanActivateEnhancedUltimate() const;
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|HeroEnergy")
+	bool TryConsumeEnhancedUltimate();
 
 	UFUNCTION(BlueprintPure, Category="Warrior|HeroEnergy")
 	float GetCurrentEnergy() const { return CurrentEnergy; }
@@ -86,6 +99,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Warrior|HeroEnergy")
 	bool IsEmpoweredHeavyActive() const { return bIsEmpoweredHeavyActive; }
+
+	UFUNCTION(BlueprintPure, Category="Warrior|HeroEnergy")
+	bool IsEnhancedUltimateLinkWindowActive() const { return bIsEnhancedUltimateLinkWindowActive; }
 
 	UPROPERTY(BlueprintAssignable, Category="Warrior|HeroEnergy")
 	FOnHeroEnergyChangedDelegate OnEnergyChanged;
@@ -111,6 +127,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Warrior|HeroEnergy")
 	FOnHeroEnergyBoolStateChangedDelegate OnSecondUltimateUnlockedChanged;
 
+	UPROPERTY(BlueprintAssignable, Category="Warrior|HeroEnergy")
+	FOnHeroEnergyBoolStateChangedDelegate OnEnhancedUltimateLinkWindowChanged;
+
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Warrior|HeroEnergy", meta=(ClampMin="1.0"))
 	float MaxEnergy = 100.f;
@@ -127,8 +146,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Warrior|HeroEnergy", meta=(ClampMin="1.0"))
 	float EnergyPerSkillPoint = 100.f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Warrior|HeroEnergy")
-	bool bResetToPhaseOneAfterSecondUltimate = true;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Warrior|HeroEnergy|Ultimate", meta=(ClampMin="0.0"))
+	float EnhancedUltimateLinkWindowDuration = 1.25f;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Warrior|HeroEnergy")
 	float CurrentEnergy = 0.f;
@@ -145,16 +164,24 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Warrior|HeroEnergy")
 	bool bIsEmpoweredHeavyActive = false;
 
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Warrior|HeroEnergy")
+	bool bIsEnhancedUltimateLinkWindowActive = false;
+
 private:
 	void SetPhase(EHeroEnergyPhase NewPhase);
 	void SetSkillPoints(int32 NewSkillPoints);
 	void AddConvertedEnergyTowardSkillPoints(float ConvertedEnergy);
+	void OpenEnhancedUltimateLinkWindow();
+	void CloseEnhancedUltimateLinkWindow();
 	void BroadcastAllState();
 	void BroadcastEnergy();
 	void BroadcastReadinessChanges();
 	void UpdateStatusTags();
 
+	FTimerHandle EnhancedUltimateLinkWindowTimerHandle;
+
 	bool bLastPhaseOneUltimateReady = false;
 	bool bLastEmpoweredHeavyReady = false;
 	bool bLastSecondUltimateUnlocked = false;
+	bool bLastEnhancedUltimateLinkWindowActive = false;
 };

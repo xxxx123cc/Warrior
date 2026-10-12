@@ -21,8 +21,8 @@ UWarriorAttributeSet::UWarriorAttributeSet()
 	InitCurrentRage(1.f);
 	InitMaxBlockValue(7.f);
 	InitCurrentBlockValue(7.f);
-	InitMaxBossPoise(100.f);
-	InitCurrentBossPoise(100.f);
+	InitMaxBossPoise(300.f);
+	InitCurrentBossPoise(300.f);
 	InitAttackPower(1.f);
 	InitDefensePower(1.f);
 }

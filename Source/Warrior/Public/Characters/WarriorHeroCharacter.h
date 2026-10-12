@@ -12,6 +12,7 @@
 class USpringArmComponent;
 class UCameraComponent;
 class UDataAsset_InputConfig;
+class UBoxComponent;
 struct FInputActionValue;
 class UHeroCombatComponent;
 class UHeroUIComponent	;
@@ -58,6 +59,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Movement|TurnStart")
 	float GetActiveTurnStartAngle() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Combat|TargetLock")
+	void SetCurrentLockedOnTarget(AActor* InLockedOnTarget);
+
+	UFUNCTION(BlueprintPure, Category = "Combat|TargetLock")
+	AActor* GetCurrentLockedOnTarget() const;
 protected:
 	//~ Begin APawn Interface
 	virtual void PossessedBy(AController* NewController) override;
@@ -67,6 +74,10 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual bool CanJumpInternal_Implementation() const override;
 	virtual void Landed(const FHitResult& Hit) override;
+
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 
 private:
 #pragma region Components
@@ -92,6 +103,18 @@ private:
 #pragma endregion//添加弹簧臂和摄影机
 
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|BodyCollision", meta=(AllowPrivateAccess="true"))
+	FName LeftFootCollisionBoxBoneName = TEXT("foot_l");
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|BodyCollision", meta=(AllowPrivateAccess="true"))
+	FName RightFootCollisionBoxBoneName = TEXT("foot_r");
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat|BodyCollision", meta=(AllowPrivateAccess="true"))
+	UBoxComponent* LeftFootBoxComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat|BodyCollision", meta=(AllowPrivateAccess="true"))
+	UBoxComponent* RightFootBoxComponent;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory", meta=(AllowPrivateAccess="true"))
 	UWarriorInventoryComponent* WarriorInventoryComponent;
 
@@ -109,6 +132,9 @@ private:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Movement|Run", meta = (AllowPrivateAccess = "true"))
 	bool bIsRunning = false;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat|TargetLock", meta = (AllowPrivateAccess = "true"))
+	AActor* CurrentLockedOnTarget = nullptr;
 
 	#pragma region Inputs
 
@@ -186,6 +212,24 @@ private:
 	void TryStartInputTurnStart(const FVector2D& MovementVector);
 	bool ShouldHoldMovementForTurnStart() const;
 	bool ShouldBypassAttackHoldForAirAttack(FGameplayTag InputTag) const;
+	void AttachFootCollisionBoxesToMesh();
+	void ConfigureBodyCollisionBox(UBoxComponent* CollisionBox);
+
+	UFUNCTION()
+	void OnBodyCollisionBoxBeginOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnBodyCollisionBoxEndOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex);
 
 	FVector2D CachedMovementInputVector = FVector2D::ZeroVector;
 	float ActiveTurnStartAngle = 0.f;
@@ -194,6 +238,8 @@ private:
 
 public:
 	FORCEINLINE UHeroCombatComponent* GetHeroCombatComponent() const{return HeroCombatComponent;}
+	FORCEINLINE UBoxComponent* GetLeftFootBoxComponent() const { return LeftFootBoxComponent; }
+	FORCEINLINE UBoxComponent* GetRightFootBoxComponent() const { return RightFootBoxComponent; }
 	//2026.4.1-添加战斗组件的访问函数（内联函数减少调用开销）
 
 	UPROPERTY(BlueprintReadWrite, Category = "Team")

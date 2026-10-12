@@ -29,6 +29,9 @@ struct FWarriorAttackImpactData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Defense", meta=(ClampMin="0.0"))
 	float BlockCost = 1.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="BossPoise", meta=(ClampMin="-1.0"))
+	float BossPoiseDamage = -1.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Impact", meta=(ClampMin="0.0"))
 	float HorizontalLaunchStrength = 0.f;
 
@@ -77,6 +80,9 @@ struct FWarriorHeavyAttackMultiSlashData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage", meta=(ClampMin="1"))
 	int32 SlashCount = 5;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage", meta=(ClampMin="0.0"))
+	float Duration = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage", meta=(ClampMin="0.0"))
 	float SlashInterval = 0.12f;

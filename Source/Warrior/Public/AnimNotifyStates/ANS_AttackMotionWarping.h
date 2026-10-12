@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
+#include "Engine/EngineTypes.h"
 #include "ANS_AttackMotionWarping.generated.h"
 
 class UMotionWarpingComponent;
@@ -48,6 +49,33 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Motion Warping", meta = (ClampMin = "0.0"))
 	float WarpTargetDistance = 150.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack Magnet")
+	bool bEnableAttackMagnet = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack Magnet")
+	bool bPreferControllerYawForAttackMagnet = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack Magnet", meta = (ClampMin = "0.0"))
+	float AttackMagnetTraceDistance = 450.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack Magnet")
+	FVector AttackMagnetTraceBoxHalfSize = FVector(220.f, 180.f, 120.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack Magnet", meta = (ClampMin = "0.0"))
+	float AttackMagnetStopDistance = 115.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack Magnet", meta = (ClampMin = "0.0"))
+	float AttackMagnetMinMoveDistance = 40.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack Magnet")
+	bool bSnapAttackMagnetToTargetSide = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack Magnet")
+	TArray<TEnumAsByte<EObjectTypeQuery>> AttackMagnetObjectTypes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack Magnet")
+	bool bDrawAttackMagnetDebug = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Motion Warping", meta = (ClampMin = "0.0", ClampMax = "180.0"))
 	float MaxYawDelta = 90.f;
 
@@ -71,6 +99,10 @@ protected:
 
 private:
 	void UpdateWarpTarget(USkeletalMeshComponent* MeshComp) const;
+	bool TryResolveAttackMagnetWarpTarget(const AActor& OwnerActor, FVector& OutLocation, FRotator& OutRotation) const;
+	AActor* FindAttackMagnetTarget(const APawn& OwnerPawn) const;
+	bool ResolveAttackMagnetTraceDirection(const APawn& OwnerPawn, FVector& OutDirection) const;
+	bool ResolveAttackMagnetSideDirection(const AActor& OwnerActor, const AActor& TargetActor, FVector& OutSideDirection) const;
 	bool ResolveDesiredDirection(const AActor& OwnerActor, FVector& OutDirection) const;
 	bool GetActorForwardDirection(const AActor& OwnerActor, FVector& OutDirection) const;
 	bool GetMovementInputDirection(const AActor& OwnerActor, FVector& OutDirection) const;

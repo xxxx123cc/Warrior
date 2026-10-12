@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystem/Abilities/WarriorGameplayAbility.h"
+#include "Items/WarriorTimedCircleDamageArea.h"
 #include "WarriorTypes/WarriorStructTypes.h"
 #include "WarriorHeroGameplayAbility.generated.h"
 
@@ -45,16 +46,52 @@ public:
 	UFUNCTION(BlueprintPure,Category="Warrior|Ability")
 	FGameplayEffectSpecHandle HeroDamageEffectHandle(TSubclassOf<UGameplayEffect>EffectClass,float InWeaponBaseDamage,FGameplayTag InCurrentAttackTypeTag,int32 InUsedComboCount);
 
+	UFUNCTION(BlueprintPure,Category="Warrior|Ability")
+	FGameplayEffectSpecHandle HeroDamageEffectHandleWithAttackImpactData(
+		TSubclassOf<UGameplayEffect> EffectClass,
+		float InWeaponBaseDamage,
+		FGameplayTag InCurrentAttackTypeTag,
+		int32 InUsedComboCount,
+		const FWarriorAttackImpactData& AttackImpactData);
+
 	UFUNCTION(BlueprintCallable, Category="Warrior|Ability|Attack", meta=(AutoCreateRefTerm="ObjectTypes", DisplayName="Pull Front Targets And Multi Slash Damage"))
 	TArray<AActor*> PullFrontTargetsAndApplyMultiSlashDamage(
 		const FGameplayEffectSpecHandle& InEffectSpecHandle,
 		const FWarriorHeavyAttackMultiSlashData& SlashData,
 		const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes);
 
+	UFUNCTION(BlueprintCallable, Category="Warrior|Ability|Ultimate", meta=(AutoCreateRefTerm="ObjectTypes", DisplayName="Resolve Enhanced Ultimate Target"))
+	AActor* ResolveEnhancedUltimateTarget(
+		AActor* PreferredTarget,
+		float FallbackTraceDistance,
+		FVector FallbackTraceBoxHalfSize,
+		const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes,
+		bool bDrawDebugShape = false) const;
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|Ability|Ultimate", DisplayName="Dash Through Enhanced Ultimate Target")
+	bool DashThroughEnhancedUltimateTarget(
+		AActor* TargetActor,
+		float PassThroughDistance,
+		bool bSweep,
+		bool bFaceDashDirection,
+		FVector& OutDashStart,
+		FVector& OutDashEnd,
+		FHitResult& OutSweepHit);
+
+	UFUNCTION(BlueprintCallable, Category="Warrior|Ability|Ultimate", DisplayName="Spawn Enhanced Ultimate Slash Area")
+	AWarriorTimedCircleDamageArea* SpawnEnhancedUltimateSlashArea(
+		AActor* TargetActor,
+		TSubclassOf<AWarriorTimedCircleDamageArea> DamageAreaClass,
+		const FGameplayEffectSpecHandle& DamageSpecHandle,
+		const FWarriorTimedCircleDamageAreaConfig& AreaConfig,
+		float SpawnHeightOffset = 0.f);
+
 	UFUNCTION(BlueprintCallable,Category="Warrior|Ability")
 	bool GetAbilityRemainingCooldownByTag(FGameplayTag CooldownTag,float& TimeRemaining,float& TotalCooldownTime);
 	
 private:
+	bool IsValidEnhancedUltimateTarget(AActor* CandidateTarget) const;
+
 	TArray<AActor*> FindHostileTargetsInFront(
 		const FWarriorHeavyAttackMultiSlashData& SlashData,
 		const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes) const;

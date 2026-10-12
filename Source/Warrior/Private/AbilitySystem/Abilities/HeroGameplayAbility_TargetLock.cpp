@@ -117,6 +117,7 @@ void UHeroGameplayAbility_TargetLock::SwitchTarget(const FGameplayTag& InSwitchD
 	if (NewLockActor)
 	{
 		CurrentLockedOnTarget = NewLockActor;
+		GetHeroCharacterFromActorInfo()->SetCurrentLockedOnTarget(CurrentLockedOnTarget);
 	}
 }
 
@@ -138,6 +139,7 @@ bool UHeroGameplayAbility_TargetLock::TryLockOnTarget()
 		CancelLockOnTarget();
 		return false;
 	}
+	GetHeroCharacterFromActorInfo()->SetCurrentLockedOnTarget(CurrentLockedOnTarget);
 
 	DrawTargetLockWidget();
 	SetTargetLockWidgetPosition();
@@ -313,6 +315,10 @@ void UHeroGameplayAbility_TargetLock::ClearLockOnTarget()
 	// 清空运行期缓存，避免下一次启动技能时读到旧目标。
 	AvailableActorsToLock.Empty();
 	CurrentLockedOnTarget = nullptr;
+	if (AWarriorHeroCharacter* HeroCharacter = GetHeroCharacterFromActorInfo())
+	{
+		HeroCharacter->SetCurrentLockedOnTarget(nullptr);
+	}
 
 	// 移除锁定 UI，防止技能取消后标记仍留在屏幕上。
 	if (CurrentTargetLockWidget)

@@ -309,7 +309,7 @@ void AWarriorMovingRectangleDamageArea::TryApplyDamageToActor(AActor* TargetActo
 
 	MarkActorDamaged(TargetPawn);
 
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+	UWarriorFunctionLibrary::SendHitReactEventToActor(
 		TargetPawn,
 		WarriorGameplayTags::Shared_Event_HitReact,
 		EventData);

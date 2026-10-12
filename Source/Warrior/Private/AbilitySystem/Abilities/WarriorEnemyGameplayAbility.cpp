@@ -517,7 +517,7 @@ int32 UWarriorEnemyGameplayAbility::ApplyEnemyDamageEffectSpecHandleToOverlapRes
 		{
 			++AppliedCount;
 
-			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+			UWarriorFunctionLibrary::SendHitReactEventToActor(
 				TargetPawn,
 				WarriorGameplayTags::Shared_Event_HitReact,
 				EventData);

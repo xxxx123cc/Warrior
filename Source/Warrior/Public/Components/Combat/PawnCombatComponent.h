@@ -11,7 +11,9 @@ enum class EToggleDamageType :uint8
 {
 	CurrentEquippedWeapon,
 	RightHand,
-	LeftHand
+	LeftHand,
+	RightFoot,
+	LeftFoot
 	
 };
 

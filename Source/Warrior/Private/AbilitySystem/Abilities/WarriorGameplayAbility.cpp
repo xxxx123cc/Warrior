@@ -6,6 +6,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AbilitySystem/WarriorAbilitySystemComponent.h"
 #include "AbilitySystem/WarriorAttributeSet.h"
+#include "Components/Combat/HeroCombatComponent.h"
 #include "Components/Combat/PawnCombatComponent.h"
 #include "Components/UI/EnemyUIComponent.h"
 #include "Components/UI/PawnUIComponent.h"
@@ -287,12 +288,22 @@ FActiveGameplayEffectHandle UWarriorGameplayAbility::NativeApplyEffectSpecHandle
 	
 	UAbilitySystemComponent* TargetASC = TargetActor->FindComponentByClass<UAbilitySystemComponent>();
 	
+	FGameplayEffectSpecHandle EffectSpecHandle = InEffectSpecHandle;
+	if (UHeroCombatComponent* HeroCombatComponent = Cast<UHeroCombatComponent>(GetCombatComponentFromActorInfo()))
+	{
+		if (HeroCombatComponent->HasCurrentAttackImpactDataOverride())
+		{
+			UWarriorFunctionLibrary::SetAttackImpactDataToEffectSpecHandle(
+				EffectSpecHandle,
+				HeroCombatComponent->GetCurrentAttackImpactData());
+		}
+	}
 
 	FActiveGameplayEffectHandle EffectHandle = GetWarriorASCFromActorInfo()->ApplyGameplayEffectSpecToTarget(
-		*InEffectSpecHandle.Data,
+		*EffectSpecHandle.Data,
 		TargetASC);
 
-	const float BaseDamage = InEffectSpecHandle.Data->GetSetByCallerMagnitude(
+	const float BaseDamage = EffectSpecHandle.Data->GetSetByCallerMagnitude(
 		WarriorGameplayTags::Shared_SetByCaller_BaseDamage,
 		false,
 		0.f);
@@ -302,18 +313,21 @@ FActiveGameplayEffectHandle UWarriorGameplayAbility::NativeApplyEffectSpecHandle
 		if (UWarriorAbilitySystemComponent* TargetWarriorASC =
 			Cast<UWarriorAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor)))
 		{
+			const FWarriorAttackImpactData AttackImpactData =
+				UWarriorFunctionLibrary::GetAttackImpactDataFromEffectSpecHandle(
+					EffectSpecHandle,
+					FWarriorAttackImpactData());
+
 			UWarriorFunctionLibrary::ApplyBossPoiseDamage(
 				TargetActor,
 				GetAvatarActorFromActorInfo(),
-				TargetWarriorASC->GetBossPoiseDamageOnHit(),
+				UWarriorFunctionLibrary::ResolveBossPoiseDamage(AttackImpactData, TargetWarriorASC),
 				TargetWarriorASC->GetBossPoiseBreakStunDuration());
 
 			UWarriorFunctionLibrary::ApplyAttackImpactToTarget(
 				TargetActor,
 				GetAvatarActorFromActorInfo(),
-				UWarriorFunctionLibrary::GetAttackImpactDataFromEffectSpecHandle(
-					InEffectSpecHandle,
-					FWarriorAttackImpactData()));
+				AttackImpactData);
 		}
 	}
 
@@ -358,7 +372,10 @@ void UWarriorGameplayAbility::ApplyGameplayEffectSpecHandleToHitResults(
 							InEffectSpecHandle,
 							FWarriorAttackImpactData()));
 					
-					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetPawn, WarriorGameplayTags::Shared_Ability_HitReact, EventData);
+					UWarriorFunctionLibrary::SendHitReactEventToActor(
+						TargetPawn,
+						WarriorGameplayTags::Shared_Ability_HitReact,
+						EventData);
 					
 				}
 			}
